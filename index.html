@@ -173,6 +173,8 @@ tr:last-child td{border-bottom:none}
 /* CAT DRAG */
 .cat-drag-handle{cursor:grab;font-size:14px;padding:0 8px 0 0;color:rgba(255,255,255,.3);user-select:none;flex-shrink:0}
 .cat-drag-handle:hover{color:rgba(255,255,255,.7)}
+.cat-name-lbl{cursor:default;border-radius:3px;padding:1px 3px;transition:background .15s}
+.cat-name-lbl:hover{background:rgba(255,255,255,.08)}
 .ts-sec.cat-dragging{opacity:.35}
 .ts-sec.cat-over{outline:2px solid rgba(59,130,246,.7);border-radius:8px}
 
@@ -740,6 +742,22 @@ CATS.forEach(c => { CAT_COL[c.name] = c.col; });
   } catch(e){}
 })();
 
+// restore saved category names
+(function(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('catNames')||'null');
+    if (saved) {
+      CATS.forEach(c => {
+        if (saved[c.id] && saved[c.id] !== c.name) {
+          const old = c.name;
+          c.name = saved[c.id];
+          TASKS.forEach(t => { if (t.cat === old) t.cat = c.name; });
+        }
+      });
+    }
+  } catch(e){}
+})();
+
 // Q targets (hardcoded from plan)
 const QTG = { s:[6,11,12,12], d:[0,3,9,9], c:[23,14,12,12] };
 
@@ -1171,7 +1189,7 @@ function renderTaskList(items) {
     const displayName = cat.name.replace(/^[A-Z]\./, (posLetter||cat.id)+'.');
     html += `<div class="ts-sec" draggable="false" data-catid="${cat.id}">
       <div class="ts-hdr" style="background:${col}18;color:${col}" onclick="toggleSection(this)">
-        <span><span class="cat-drag-handle" title="드래그로 순서 변경" onclick="event.stopPropagation()">⠿</span><span class="ts-arr">▶</span>${H(displayName)}</span>
+        <span><span class="cat-drag-handle" title="드래그로 순서 변경" onclick="event.stopPropagation()">⠿</span><span class="ts-arr">▶</span><span class="cat-name-lbl" title="더블클릭으로 이름 변경" ondblclick="editCatName(event,'${cat.id}')" onclick="event.stopPropagation()">${H(displayName)}</span></span>
         <span class="ts-cnt" style="background:${col}">${its.length}개</span>
       </div>
       <div class="ts-body">
@@ -1283,6 +1301,42 @@ function initCatDrag() {
       try { localStorage.setItem('catOrder', JSON.stringify(CATS.map(c=>c.id))); } catch(e){}
       applyFilter();
     });
+  });
+}
+
+function editCatName(e, catId) {
+  e.stopPropagation();
+  const span = e.currentTarget;
+  const cat = CATS.find(c => c.id === catId);
+  if (!cat) return;
+  const curText = span.textContent;
+  const inp = document.createElement('input');
+  inp.value = curText;
+  inp.style.cssText = 'background:rgba(0,0,0,.4);border:none;border-bottom:2px solid rgba(255,255,255,.6);color:inherit;font:inherit;font-size:inherit;font-weight:inherit;outline:none;width:180px;padding:0 2px;border-radius:2px 2px 0 0';
+  span.replaceWith(inp);
+  inp.focus(); inp.select();
+
+  const commit = () => {
+    const newLabel = inp.value.trim();
+    if (newLabel && newLabel !== curText) {
+      const oldName = cat.name;
+      // 앞 알파벳 prefix 보존: 기존 cat.name의 prefix + 새 descriptive 부분
+      const prefixMatch = cat.name.match(/^([A-Z]\. )/);
+      const dispPrefix = curText.match(/^([A-Z]\. )/);
+      // 사용자가 prefix 포함해서 입력했으면 그대로, 아니면 기존 prefix 붙임
+      const hasPrefix = /^[A-Z]\. /.test(newLabel);
+      const saveName = hasPrefix ? newLabel : (prefixMatch ? prefixMatch[1] + newLabel : newLabel);
+      cat.name = saveName;
+      TASKS.forEach(t => { if (t.cat === oldName) t.cat = saveName; });
+      try { localStorage.setItem('catNames', JSON.stringify(Object.fromEntries(CATS.map(c=>[c.id,c.name])))); } catch(err){}
+    }
+    applyFilter();
+  };
+
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter')  { ev.preventDefault(); inp.blur(); }
+    if (ev.key === 'Escape') { inp.value = curText; inp.blur(); }
   });
 }
 
