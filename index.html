@@ -356,10 +356,29 @@ th{position:relative}
     </div>
   </div>
 
-  <div class="sec">목표 / 실적 추이</div>
-  <div class="tbl-wrap" style="padding:16px 16px 8px;margin-bottom:16px">
-    <canvas id="trendChart" style="width:100%;display:block"></canvas>
-    <div id="trendLegend" style="display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:center;margin-top:10px;font-size:11px;color:var(--muted)"></div>
+  <div class="sec">목표 / 실적 추이 — 전체 합계</div>
+  <div class="tbl-wrap" style="padding:16px 16px 10px;margin-bottom:16px">
+    <canvas id="chartTotal" style="width:100%;display:block"></canvas>
+    <div id="legendTotal" style="display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted)"></div>
+  </div>
+
+  <div class="sec">목표 / 실적 추이 — 항목별</div>
+  <div class="tbl-wrap" style="padding:16px 16px 10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div>
+        <div style="text-align:center;font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:6px">🟣 자회사</div>
+        <canvas id="chartS" style="width:100%;display:block"></canvas>
+      </div>
+      <div>
+        <div style="text-align:center;font-size:11px;color:#38bdf8;font-weight:700;margin-bottom:6px">🔵 국내</div>
+        <canvas id="chartD" style="width:100%;display:block"></canvas>
+      </div>
+      <div>
+        <div style="text-align:center;font-size:11px;color:#fb7185;font-weight:700;margin-bottom:6px">🔴 중국 소싱</div>
+        <canvas id="chartC" style="width:100%;display:block"></canvas>
+      </div>
+    </div>
+    <div id="legendSplit" style="display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted)"></div>
   </div>
 
   <div class="sec">월별 실적 현황</div>
@@ -970,142 +989,149 @@ function renderCompare() {
   }
 
   // Trend chart
-  drawTrendChart(cum, curMon);
+  drawAllCharts(cum, curMon);
 }
 
-function drawTrendChart(cum, curMon) {
-  const canvas = document.getElementById('trendChart');
-  if (!canvas) return;
-  const legend = document.getElementById('trendLegend');
+function drawAllCharts(cum, curMon) {
+  // ── 합계 차트 ──
+  const totalCum = Array(12).fill(0).map((_,i) => (cum.s[i]||0)+(cum.d[i]||0)+(cum.c[i]||0));
+  const totalTgt = TGT.s + TGT.d + TGT.c;
+  drawSingleChart('chartTotal', totalCum, totalTgt, '#818cf8', curMon, true);
 
-  const DPR   = window.devicePixelRatio || 1;
-  const cW    = canvas.parentElement.clientWidth - 32;
-  const cH    = 180;
+  // ── 범례 (합계) ──
+  const legT = document.getElementById('legendTotal');
+  if (legT) legT.innerHTML = makeLegendHTML([{col:'#818cf8',label:'전체 누적 실적'},{col:'rgba(129,140,248,0.35)',label:'목표 선형 기준',dash:true}]);
+
+  // ── 항목별 3개 ──
+  drawSingleChart('chartS', cum.s.map((v,i)=>v||0), TGT.s, '#a78bfa', curMon, false);
+  drawSingleChart('chartD', cum.d.map((v,i)=>v||0), TGT.d, '#38bdf8', curMon, false);
+  drawSingleChart('chartC', cum.c.map((v,i)=>v||0), TGT.c, '#fb7185', curMon, false);
+
+  // ── 범례 (항목별 공통) ──
+  const legS = document.getElementById('legendSplit');
+  if (legS) legS.innerHTML = makeLegendHTML([
+    {col:'var(--text)',label:'실적 누적 라인'},
+    {col:'rgba(255,255,255,0.25)',label:'목표 기준선',dash:true},
+    {col:'rgba(99,102,241,0.8)',label:'▲ 현재 월',noLine:true},
+  ]);
+}
+
+function makeLegendHTML(items) {
+  return items.map(({col,label,dash,noLine}) => {
+    if (noLine) return `<span style="display:flex;align-items:center;gap:4px"><span style="color:${col}">${label}</span></span>`;
+    const line = dash
+      ? `<span style="display:inline-block;width:20px;height:0;border-top:2px dashed ${col}"></span>`
+      : `<span style="display:inline-block;width:20px;height:2px;background:${col};border-radius:2px"></span>`;
+    return `<span style="display:flex;align-items:center;gap:5px">${line}<span>${label}</span></span>`;
+  }).join('');
+}
+
+function drawSingleChart(id, cumArr, tgt, col, curMon, isTotal) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const DPR  = window.devicePixelRatio || 1;
+  const cW   = Math.max(canvas.parentElement.clientWidth - (isTotal ? 0 : 0), 60);
+  const cH   = isTotal ? 180 : 140;
   canvas.style.width  = cW + 'px';
   canvas.style.height = cH + 'px';
   canvas.width  = cW * DPR;
   canvas.height = cH * DPR;
-
   const ctx = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
 
-  const PAD = {top:16, right:16, bottom:28, left:36};
+  const PAD = {top:14, right:14, bottom:26, left: isTotal ? 40 : 32};
   const W = cW - PAD.left - PAD.right;
-  const H = cH - PAD.top - PAD.bottom;
-
-  // Background
+  const H = cH - PAD.top  - PAD.bottom;
   ctx.clearRect(0, 0, cW, cH);
 
-  // ── data ──
-  const series = [
-    {key:'s', label:'자회사 누적', col:'#a78bfa', tgt:TGT.s},
-    {key:'d', label:'국내 누적',   col:'#38bdf8', tgt:TGT.d},
-    {key:'c', label:'중국 누적',   col:'#fb7185', tgt:TGT.c},
-  ];
-  const maxVal = Math.max(...series.map(s => s.tgt), 1);
-  const yMax   = Math.ceil(maxVal * 1.1 / 10) * 10;
-
+  const yMax = Math.max(Math.ceil(tgt * 1.15 / 5) * 5, 5);
   const xPos = i => PAD.left + (i / 11) * W;
-  const yPos = v => PAD.top + H - (v / yMax) * H;
+  const yPos = v => PAD.top  + H - Math.min(v / yMax, 1) * H;
 
-  // ── grid ──
+  // grid
+  const gridTicks = isTotal ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.5, 1];
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
-  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+  gridTicks.forEach(t => {
     const y = PAD.top + H * (1 - t);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + W, y); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '10px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.font = (isTotal ? '10' : '9') + 'px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(Math.round(yMax * t), PAD.left - 4, y + 3);
+    ctx.fillText(Math.round(yMax * t), PAD.left - 3, y + 3);
   });
 
-  // ── month labels ──
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '9px sans-serif';
+  // month labels (개별 차트는 1,3,5,7,9,11 만 표시)
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.font = (isTotal ? '9' : '8') + 'px sans-serif';
   ctx.textAlign = 'center';
   ['1','2','3','4','5','6','7','8','9','10','11','12'].forEach((lbl, i) => {
+    if (!isTotal && i % 2 !== 0) return;
     ctx.fillText(lbl+'월', xPos(i), PAD.top + H + 16);
   });
 
-  // ── goal ramp lines (dashed) ──
-  series.forEach(s => {
-    ctx.save();
-    ctx.strokeStyle = s.col;
-    ctx.globalAlpha = 0.25;
-    ctx.lineWidth = 1.2;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    for (let i = 0; i < 12; i++) {
-      const v = s.tgt / 11 * i;
-      if (i === 0) ctx.moveTo(xPos(i), yPos(v));
-      else ctx.lineTo(xPos(i), yPos(v));
-    }
-    ctx.stroke();
-    ctx.restore();
-  });
+  // goal ramp (dashed)
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.globalAlpha = 0.28;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  for (let i = 0; i < 12; i++) {
+    const v = tgt / 11 * i;
+    i === 0 ? ctx.moveTo(xPos(i), yPos(v)) : ctx.lineTo(xPos(i), yPos(v));
+  }
+  ctx.stroke();
+  ctx.restore();
 
-  // ── current month vertical marker ──
+  // current month marker
   if (curMon >= 0 && curMon <= 11) {
     const cx = xPos(curMon);
     ctx.save();
-    ctx.strokeStyle = 'rgba(99,102,241,0.6)';
+    ctx.strokeStyle = 'rgba(99,102,241,0.55)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, PAD.top + H); ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = 'rgba(99,102,241,0.9)';
+    ctx.fillStyle = 'rgba(99,102,241,0.85)';
     ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('▲', cx, PAD.top + H + 8);
+    ctx.fillText('▲', cx, PAD.top + H + 10);
   }
 
-  // ── actual lines ──
-  series.forEach(s => {
-    const pts = [];
-    for (let i = 0; i <= curMon; i++) {
-      const v = cum[s.key][i] || 0;
-      if (v > 0 || i === 0) pts.push({x: xPos(i), y: yPos(v), v});
-    }
-    if (pts.length < 1) return;
-
+  // actual line
+  const pts = [];
+  for (let i = 0; i <= Math.min(curMon, 11); i++) {
+    pts.push({x: xPos(i), y: yPos(cumArr[i] || 0), v: cumArr[i] || 0});
+  }
+  if (pts.length > 0) {
     ctx.save();
-    ctx.strokeStyle = s.col;
-    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = isTotal ? 2.5 : 2;
     ctx.lineJoin = 'round';
-    ctx.shadowColor = s.col;
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = isTotal ? 8 : 5;
     ctx.beginPath();
     pts.forEach((p, i) => i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
     ctx.stroke();
     ctx.restore();
 
-    // dots
+    // dots + last value label
     pts.forEach((p, i) => {
+      const r = (i === curMon) ? (isTotal ? 4.5 : 3.5) : (isTotal ? 3 : 2);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, i === curMon ? 4 : 2.5, 0, Math.PI*2);
-      ctx.fillStyle = i === curMon ? s.col : 'rgba(255,255,255,0.7)';
+      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+      ctx.fillStyle = i === curMon ? col : 'rgba(255,255,255,0.65)';
       ctx.fill();
-      // value label on last dot
-      if (i === pts.length - 1 && p.v > 0) {
-        ctx.fillStyle = s.col;
-        ctx.font = 'bold 10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.v, p.x, p.y - 8);
-      }
     });
-  });
-
-  // ── legend ──
-  if (legend) {
-    legend.innerHTML = series.map(s =>
-      `<span style="display:flex;align-items:center;gap:5px">
-        <span style="display:inline-block;width:18px;height:2px;background:${s.col};border-radius:2px"></span>
-        <span style="color:${s.col}">${s.label}</span>
-        <span style="color:rgba(255,255,255,.3)">/ 목표</span>
-        <span style="display:inline-block;width:18px;height:1px;background:${s.col};opacity:.4;border-top:1px dashed ${s.col}"></span>
-      </span>`
-    ).join('') + '<span style="display:flex;align-items:center;gap:4px"><span style="color:rgba(99,102,241,0.8)">▲</span><span>현재 월</span></span>';
+    // last value
+    const last = pts[pts.length-1];
+    if (last && last.v > 0) {
+      ctx.fillStyle = col;
+      ctx.font = 'bold ' + (isTotal ? '11' : '10') + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(last.v, last.x, last.y - (isTotal ? 9 : 8));
+    }
   }
 }
 
