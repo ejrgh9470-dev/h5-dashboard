@@ -125,6 +125,16 @@ tr:last-child td{border-bottom:none}
 .sub-arrow{color:var(--m2);margin-right:4px}
 .td-note{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--m2);font-size:10px}
 
+/* INLINE EDIT CONTROLS */
+.ie-sel{appearance:none;-webkit-appearance:none;border:none;cursor:pointer;font-size:10px;font-weight:700;border-radius:4px;padding:2px 6px;width:100%;text-align:center;outline:none;background:transparent}
+.ie-sel:focus{outline:1px solid #3b82f6}
+.ie-sel option{background:var(--card);color:var(--txt)}
+.ie-dt{border:none;background:transparent;color:var(--muted);font-size:10px;width:100%;cursor:pointer;outline:none;padding:0}
+.ie-dt:focus{color:var(--txt);outline:1px solid #3b82f6;border-radius:3px}
+.ie-note{border:none;background:transparent;color:var(--m2);font-size:10px;width:100%;outline:none;padding:0;font-family:inherit}
+.ie-note:focus{color:var(--txt);outline:1px solid #3b82f6;border-radius:3px;padding:1px 3px}
+.ie-note::placeholder{color:var(--muted)}
+
 /* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
@@ -917,8 +927,16 @@ function renderCompare() {
 // ── TASK LIST ──────────────────────────────────
 const H = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-function stsClass(s) { return s==='완료'?'sts-done':s==='진행중'?'sts-prog':s==='홀딩'?'sts-hold':'sts-wait'; }
+function stsClass(s) { return s==='완료'?'sts-done':s==='진행중'?'sts-prog':'sts-wait'; }
 function ownClass(o) { return o==='개발'?'own-dev':o==='공동'?'own-com':'own-biz'; }
+
+function updateTask(id, field, val) {
+  const t = TASKS.find(t => t._id === id);
+  if (!t) return;
+  t[field] = val;
+  renderTaskStats();
+  renderCatGrid();
+}
 
 function renderTaskList(items) {
   const wrap = document.getElementById('taskWrap');
@@ -944,13 +962,13 @@ function renderTaskList(items) {
         <span class="ts-cnt" style="background:${col}">${its.length}개</span>
       </div>
       <div class="ts-body">
-        <table><thead><tr>
+        <table style="table-layout:fixed;width:100%"><thead><tr>
           <th style="width:14px"></th>
           <th style="width:110px">중분류</th>
-          <th style="min-width:220px">상세 / 하위 TASK</th>
-          <th style="width:60px">담당</th>
-          <th style="width:70px">상태</th>
-          <th style="width:50px">예정일</th>
+          <th style="width:220px">상세 / 하위 TASK</th>
+          <th style="width:64px">담당</th>
+          <th style="width:74px">상태</th>
+          <th style="width:90px">예정일</th>
           <th>참고사항</th>
         </tr></thead><tbody>`;
 
@@ -964,14 +982,24 @@ function renderTaskList(items) {
       const taskText = isSub
         ? `<span class="sub-arrow">└</span>${H(t.sub || t.det)}`
         : H(t.det);
+      const ownOpts = ['사업','개발','공동'].map(v=>`<option value="${v}"${t.own===v?' selected':''}>​${v}</option>`).join('');
+      const stsOpts = ['대기','진행중','완료'].map(v=>`<option value="${v}"${t.sts===v?' selected':''}>​${v}</option>`).join('');
       html += `<tr class="${isSub?'tr-sub':'tr-main'}" draggable="true" data-id="${t._id}" onclick="selectRow(this,${t._id})">
         <td><span class="drag-handle" title="드래그로 순서 변경">⠿</span></td>
         <td>${midCell}</td>
         <td>${taskText}</td>
-        <td><span class="${ownClass(t.own)}">${H(t.own)||'—'}</span></td>
-        <td><span class="${stsClass(t.sts)}">${H(t.sts)||'—'}</span></td>
-        <td style="text-align:center;color:var(--muted);font-size:10px">—</td>
-        <td class="td-note" title="${H(t.note)}">${H(t.note)||'—'}</td>
+        <td onclick="event.stopPropagation()">
+          <select class="ie-sel ${ownClass(t.own)}" onchange="updateTask(${t._id},'own',this.value);this.className='ie-sel '+ownClass(this.value)">${ownOpts}</select>
+        </td>
+        <td onclick="event.stopPropagation()">
+          <select class="ie-sel ${stsClass(t.sts)}" onchange="updateTask(${t._id},'sts',this.value);this.className='ie-sel '+stsClass(this.value)">${stsOpts}</select>
+        </td>
+        <td onclick="event.stopPropagation()">
+          <input type="date" class="ie-dt" value="${t.dt||''}" onchange="updateTask(${t._id},'dt',this.value)">
+        </td>
+        <td onclick="event.stopPropagation()">
+          <input type="text" class="ie-note" value="${(t.note||'').replace(/"/g,'&quot;')}" placeholder="메모 입력" onblur="updateTask(${t._id},'note',this.value)">
+        </td>
       </tr>`;
     });
     html += `</tbody></table></div></div>`;
