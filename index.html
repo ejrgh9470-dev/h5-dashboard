@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>H5 사업전략 대시보드 · Neptune</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#080d18;--navy:#0a0f1e;--card:#111827;--c2:#1a2332;
+  --bdr:#1e2d45;--txt:#e2e8f0;--muted:#475569;--m2:#64748b;
+  --done:#10b981;--prog:#3b82f6;--hold:#f59e0b;--err:#ef4444;
+  --sc:#8b5cf6;--dc:#0ea5e9;--cc:#f43f5e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#060b15,#0d1e38);border-bottom:1px solid var(--bdr);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.htitle{font-size:15px;font-weight:800}
+.hsub{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* TABS */
+.tabs{display:flex;gap:2px;padding:10px 22px 0;border-bottom:1px solid var(--bdr);background:var(--navy);overflow-x:auto}
+.tab{padding:8px 16px;border-radius:7px 7px 0 0;font-size:11px;font-weight:700;cursor:pointer;border:1px solid transparent;border-bottom:none;color:var(--muted);white-space:nowrap;transition:all .15s;user-select:none}
+.tab:hover{color:var(--txt);background:var(--c2)}
+.tab.on{color:#fff;background:var(--card);border-color:var(--bdr);border-bottom-color:var(--card)}
+
+/* PANES */
+.pane{padding:20px 22px;display:none}
+.pane.on{display:block}
+
+/* SECTION LABEL */
+.sec{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* STAT CARDS */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:14px}
+.card-lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.5px;margin-bottom:4px}
+.card-val{font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1.1}
+.card-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* GAUGES */
+.gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.gauge-box{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center}
+.gauge-title{font-size:11px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px}
+.gauge-svg{width:110px;height:110px;position:relative;margin:0 auto 8px}
+.gauge-svg svg{width:100%;height:100%}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-num{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
+.gauge-den{font-size:11px;color:var(--muted)}
+.gauge-pct{font-size:11px;font-weight:700;margin-top:4px}
+.gauge-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px}
+.gauge-row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:3px 6px;background:#0b1421;border-radius:4px}
+.gauge-row span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--txt)}
+
+/* CAT GRID */
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.cat-card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:12px}
+.cat-name{font-size:11px;font-weight:700;margin-bottom:8px}
+.prog-bar{height:4px;background:var(--c2);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s}
+.cat-counts{display:flex;gap:6px;font-size:9px}
+.ct-done{color:var(--done)}
+.ct-prog{color:var(--prog)}
+.ct-wait{color:var(--muted)}
+
+/* TABLE WRAPPER */
+.tbl-wrap{background:var(--card);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#0b1421;color:var(--muted);font-size:10px;font-weight:700;padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bdr)}
+td{padding:7px 10px;border-bottom:1px solid #0f172a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+
+/* MONTHLY INPUT TABLE */
+.inp-cell{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:4px;padding:4px 8px;color:#fbbf24;font-family:'JetBrains Mono',monospace;font-weight:700;width:70px;text-align:center;outline:none}
+.inp-cell:focus{border-color:rgba(251,191,36,.6);background:rgba(251,191,36,.1)}
+.cum-cell{font-family:'JetBrains Mono',monospace;font-weight:700;text-align:center}
+
+/* TASK FILTER BAR */
+.fl-bar{display:flex;flex-wrap:wrap;gap:6px;padding:12px;align-items:center}
+.fl-s{background:var(--c2);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-size:11px;padding:5px 8px;cursor:pointer;outline:none}
+.fl-s:focus{border-color:#3b82f6}
+.fl-inp{background:var(--c2);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-size:11px;padding:5px 10px;outline:none;flex:1;min-width:160px}
+.fl-inp:focus{border-color:#3b82f6}
+.fl-btn{background:none;border:1px solid var(--bdr);border-radius:6px;color:var(--muted);font-size:11px;padding:5px 10px;cursor:pointer}
+.fl-btn:hover{color:var(--txt);border-color:var(--m2)}
+.fl-add{border-color:rgba(59,130,246,.5);color:#60a5fa}
+.fl-add:hover{background:rgba(59,130,246,.1)}
+.fl-cnt{font-size:11px;color:var(--muted);font-weight:700;margin-left:4px}
+.fl-hint{padding:6px 12px;background:rgba(59,130,246,.06);border-top:1px solid rgba(59,130,246,.15);font-size:10px;color:#93c5fd;display:flex;gap:16px;flex-wrap:wrap}
+
+/* TASK SECTIONS */
+.ts-sec{margin-bottom:8px}
+.ts-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;user-select:none;font-size:12px;font-weight:800}
+.ts-body{border-radius:0 0 8px 8px;border:1px solid var(--bdr);border-top:none;overflow:hidden}
+.ts-body.closed{display:none}
+.ts-arr{display:inline-block;transition:transform .2s;margin-right:6px;font-size:10px}
+.ts-cnt{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff}
+
+/* TASK ROWS */
+.tr-main td{background:var(--card)}
+.tr-sub td{background:#0d1525}
+.tr-main:hover td,.tr-sub:hover td{background:#111e30}
+.tr-main.selected td,.tr-sub.selected td{background:rgba(59,130,246,.12);outline:1px solid rgba(59,130,246,.3)}
+.tr-main.drag-over td,.tr-sub.drag-over td{background:rgba(139,92,246,.15);box-shadow:inset 0 -2px 0 #7c3aed}
+.tr-main.dragging,.tr-sub.dragging{opacity:.35}
+.drag-handle{cursor:grab;color:#2a3a52;font-size:14px;padding:0 4px;user-select:none}
+.drag-handle:hover{color:var(--m2)}
+
+/* BADGES */
+.mid-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.own-biz{background:rgba(99,102,241,.15);color:#818cf8;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700}
+.own-dev{background:rgba(16,185,129,.15);color:#34d399;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700}
+.own-com{background:rgba(245,158,11,.15);color:#fcd34d;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700}
+.sts-done{background:rgba(16,185,129,.15);color:#6ee7b7;border-radius:10px;padding:2px 9px;font-size:10px;font-weight:700}
+.sts-prog{background:rgba(59,130,246,.15);color:#93c5fd;border-radius:10px;padding:2px 9px;font-size:10px;font-weight:700}
+.sts-wait{background:rgba(71,85,105,.2);color:#94a3b8;border-radius:10px;padding:2px 9px;font-size:10px;font-weight:700}
+.sts-hold{background:rgba(245,158,11,.15);color:#fcd34d;border-radius:10px;padding:2px 9px;font-size:10px;font-weight:700}
+.sub-arrow{color:var(--m2);margin-right:4px}
+.td-note{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--m2);font-size:10px}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:22px;width:min(500px,95vw);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--txt)}
+.fld{margin-bottom:10px}
+.fld label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}
+.fld input,.fld select{width:100%;background:var(--c2);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-size:12px;padding:7px 10px;outline:none}
+.fld input:focus,.fld select:focus{border-color:#3b82f6}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tag-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag{background:var(--c2);border:1px solid var(--bdr);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--m2);cursor:pointer}
+.tag:hover{border-color:var(--m2);color:var(--txt)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-cancel{background:none;border:1px solid var(--bdr);border-radius:6px;color:var(--muted);font-size:11px;padding:7px 14px;cursor:pointer}
+.btn-ok{background:linear-gradient(135deg,#3b82f6,#7c3aed);border:none;border-radius:6px;color:#fff;font-size:11px;padding:7px 16px;cursor:pointer;font-weight:700}
+
+/* SAVE BTN */
+.save-btn{background:linear-gradient(135deg,#059669,#0891b2);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;padding:8px 18px;cursor:pointer}
+
+/* COMPARE TABLE */
+.cmp-tbl th{text-align:center}
+.cmp-tbl td{text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700}
+.cmp-tbl td:first-child{text-align:left;font-family:inherit;font-weight:700}
+.act-ok{color:#10b981}
+.act-low{color:#f59e0b}
+
+/* NOTICE */
+.notice{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 14px;font-size:11px;color:#93c5fd;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo">🚀</div>
+    <div>
+      <div class="htitle">H5 사업전략 종합 대시보드 · Neptune</div>
+      <div class="hsub">2026 실시간 현황 · 259개 TASK</div>
+    </div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:4px 12px;font-size:11px;display:flex;align-items:center;gap:6px">
+    <span style="width:6px;height:6px;border-radius:50%;background:var(--done);display:inline-block"></span>
+    업데이트: <b id="updTxt">—</b>
+  </div>
+</div>
+
+<div class="tabs" id="tabBar">
+  <div class="tab on" data-tab="dash">📊 대시보드</div>
+  <div class="tab" data-tab="input">📅 월별 입력</div>
+  <div class="tab" data-tab="task">🗂️ 전체 TASK</div>
+  <div class="tab" data-tab="compare">📊 목표 vs 실적</div>
+</div>
+
+<!-- ── PANE 1: DASHBOARD ───────────────────────── -->
+<div class="pane on" id="p-dash">
+  <div class="sec">전체 현황</div>
+  <div class="cards">
+    <div class="card"><div class="card-lbl">전체 TASK</div><div class="card-val" id="totTask">259</div><div class="card-sub">A~G + Phase 2</div></div>
+    <div class="card"><div class="card-lbl">✅ 완료</div><div class="card-val" id="totDone" style="color:var(--done)">0</div><div class="card-sub" id="totDonePct">0%</div></div>
+    <div class="card"><div class="card-lbl">🔄 진행중</div><div class="card-val" id="totProg" style="color:var(--prog)">0</div><div class="card-sub" id="totProgPct">0%</div></div>
+    <div class="card"><div class="card-lbl">⏳ 대기</div><div class="card-val" id="totWait" style="color:var(--hold)">259</div><div class="card-sub" id="totWaitPct">100%</div></div>
+  </div>
+
+  <div class="sec">게임 런칭·소싱 현황</div>
+  <div class="gauges">
+    <div class="gauge-box">
+      <div class="gauge-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--sc);display:inline-block"></span>자회사 게임 런칭</div>
+      <div class="gauge-svg"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="44" fill="none" stroke="#1e2d45" stroke-width="10"/><circle id="gS" cx="55" cy="55" r="44" fill="none" stroke="var(--sc)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 276.46" transform="rotate(-90 55 55)"/></svg><div class="gauge-center"><div class="gauge-num" id="gSv" style="color:var(--sc)">0</div><div class="gauge-den">/<span id="gSt">37</span></div></div></div>
+      <div class="gauge-pct" id="gSp" style="color:var(--sc)">0%</div>
+      <div class="gauge-meta"><div class="gauge-row"><span>연간 목표</span><span id="gSm1">37</span></div><div class="gauge-row"><span>이번달</span><span id="gSm2">0</span></div></div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--dc);display:inline-block"></span>국내 개발사 런칭</div>
+      <div class="gauge-svg"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="44" fill="none" stroke="#1e2d45" stroke-width="10"/><circle id="gD" cx="55" cy="55" r="44" fill="none" stroke="var(--dc)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 276.46" transform="rotate(-90 55 55)"/></svg><div class="gauge-center"><div class="gauge-num" id="gDv" style="color:var(--dc)">0</div><div class="gauge-den">/<span id="gDt">18</span></div></div></div>
+      <div class="gauge-pct" id="gDp" style="color:var(--dc)">0%</div>
+      <div class="gauge-meta"><div class="gauge-row"><span>연간 목표</span><span id="gDm1">18</span></div><div class="gauge-row"><span>이번달</span><span id="gDm2">0</span></div></div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--cc);display:inline-block"></span>중국 H5 소싱</div>
+      <div class="gauge-svg"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="44" fill="none" stroke="#1e2d45" stroke-width="10"/><circle id="gC" cx="55" cy="55" r="44" fill="none" stroke="var(--cc)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 276.46" transform="rotate(-90 55 55)"/></svg><div class="gauge-center"><div class="gauge-num" id="gCv" style="color:var(--cc)">0</div><div class="gauge-den">/<span id="gCt">73</span></div></div></div>
+      <div class="gauge-pct" id="gCp" style="color:var(--cc)">0%</div>
+      <div class="gauge-meta"><div class="gauge-row"><span>연간 목표</span><span id="gCm1">73</span></div><div class="gauge-row"><span>이번달</span><span id="gCm2">0</span></div></div>
+    </div>
+  </div>
+
+  <div class="sec">카테고리별 진행률</div>
+  <div class="cat-grid" id="catGrid"></div>
+
+  <div class="sec">월별 런칭·소싱 요약</div>
+  <div class="tbl-wrap"><div class="tbl-scroll">
+    <table>
+      <thead><tr>
+        <th rowspan="2">월</th>
+        <th colspan="2" style="color:var(--sc)">자회사</th>
+        <th colspan="2" style="color:var(--dc)">국내</th>
+        <th colspan="2" style="color:var(--cc)">중국 소싱</th>
+      </tr><tr>
+        <th style="color:var(--sc)">월</th><th style="color:var(--sc)">누적</th>
+        <th style="color:var(--dc)">월</th><th style="color:var(--dc)">누적</th>
+        <th style="color:var(--cc)">월</th><th style="color:var(--cc)">누적</th>
+      </tr></thead>
+      <tbody id="summTb"></tbody>
+    </table>
+  </div></div>
+</div>
+
+<!-- ── PANE 2: MONTHLY INPUT ──────────────────── -->
+<div class="pane" id="p-input">
+  <div class="notice">💡 매월 말 실적 입력 후 <b>저장·갱신</b> 클릭</div>
+
+  <div class="tbl-wrap" style="margin-bottom:14px">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;font-weight:700">⚙️ 연간 목표 설정</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px">
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--sc);margin-bottom:6px;font-weight:700">🟣 자회사</div>
+        <input id="tgtS" type="number" value="37" min="1" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.4);border-radius:6px;padding:6px;color:#a78bfa;font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;text-align:center;width:100%;outline:none" oninput="updateGauges()">
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--dc);margin-bottom:6px;font-weight:700">🔵 국내</div>
+        <input id="tgtD" type="number" value="18" min="1" style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.4);border-radius:6px;padding:6px;color:#38bdf8;font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;text-align:center;width:100%;outline:none" oninput="updateGauges()">
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:10px;color:var(--cc);margin-bottom:6px;font-weight:700">🔴 중국 소싱</div>
+        <input id="tgtC" type="number" value="73" min="1" style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.4);border-radius:6px;padding:6px;color:#fb7185;font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;text-align:center;width:100%;outline:none" oninput="updateGauges()">
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:12px;font-weight:700">📅 월별 게임 실적 입력</div><div style="font-size:10px;color:var(--muted);margin-top:2px">🟡 노란 셀 입력 → 누적 자동 계산</div></div>
+      <button class="save-btn" onclick="saveData()">💾 저장·갱신</button>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th rowspan="2">월</th>
+          <th colspan="2" style="color:var(--sc)">🟣 자회사</th>
+          <th colspan="2" style="color:var(--dc)">🔵 국내</th>
+          <th colspan="2" style="color:var(--cc)">🔴 중국 소싱</th>
+        </tr><tr>
+          <th style="color:#fbbf24">▶ 입력</th><th style="color:var(--sc)">누적</th>
+          <th style="color:#fbbf24">▶ 입력</th><th style="color:var(--dc)">누적</th>
+          <th style="color:#fbbf24">▶ 입력</th><th style="color:var(--cc)">누적</th>
+        </tr></thead>
+        <tbody id="inpTb"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANE 3: TASK LIST ──────────────────────── -->
+<div class="pane" id="p-task">
+  <div class="tbl-wrap" style="border-radius:10px 10px 0 0;border-bottom:none;margin-bottom:0">
+    <div class="fl-bar">
+      <select class="fl-s" id="flCat" onchange="applyFilter();populateMidFilter()"><option value="">전체 카테고리</option></select>
+      <select class="fl-s" id="flMid" onchange="applyFilter()"><option value="">전체 중분류</option></select>
+      <select class="fl-s" id="flSts" onchange="applyFilter()"><option value="">전체 상태</option><option>완료</option><option>진행중</option><option>대기</option><option>홀딩</option></select>
+      <select class="fl-s" id="flOwn" onchange="applyFilter()"><option value="">전체 담당</option><option>사업</option><option>개발</option><option>공동</option></select>
+      <select class="fl-s" id="flTyp" onchange="applyFilter()"><option value="">전체 유형</option><option value="상세 TASK">상세 TASK</option><option value="하위 TASK">하위 TASK</option></select>
+      <input class="fl-inp" id="flQ" type="text" placeholder="🔍 검색…" oninput="applyFilter()">
+      <button class="fl-btn" onclick="resetFilter()">초기화</button>
+      <button class="fl-btn fl-add" onclick="openAddModal()">➕ TASK 추가</button>
+      <span class="fl-cnt" id="flCnt">259개</span>
+    </div>
+  </div>
+  <div class="fl-hint">
+    <span>⠿ <b>드래그</b> → 순서 변경</span>
+    <span>🖱 <b>클릭</b> → 행 선택</span>
+    <span>⌨ <b>Delete 키</b> → 선택 행 삭제</span>
+  </div>
+  <div id="taskWrap"></div>
+</div>
+
+<!-- ── PANE 4: COMPARE ────────────────────────── -->
+<div class="pane" id="p-compare">
+  <div class="sec">연간 목표 달성 현황</div>
+  <div class="cards" id="cmpCards"></div>
+
+  <div class="sec">분기별 목표 vs 실적</div>
+  <div class="tbl-wrap" style="margin-bottom:16px">
+    <div class="tbl-scroll">
+      <table class="cmp-tbl">
+        <thead><tr>
+          <th>분기</th>
+          <th colspan="2" style="color:var(--sc)">자회사</th>
+          <th colspan="2" style="color:var(--dc)">국내</th>
+          <th colspan="2" style="color:var(--cc)">중국 소싱</th>
+        </tr><tr>
+          <th></th>
+          <th style="color:var(--sc)">목표</th><th style="color:var(--sc)">실적</th>
+          <th style="color:var(--dc)">목표</th><th style="color:var(--dc)">실적</th>
+          <th style="color:var(--cc)">목표</th><th style="color:var(--cc)">실적</th>
+        </tr></thead>
+        <tbody id="cmpQTb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec">월별 실적 현황</div>
+  <div class="tbl-wrap">
+    <div class="tbl-scroll">
+      <table class="cmp-tbl">
+        <thead><tr>
+          <th>월</th>
+          <th colspan="2" style="color:var(--sc)">자회사</th>
+          <th colspan="2" style="color:var(--dc)">국내</th>
+          <th colspan="2" style="color:var(--cc)">중국 소싱</th>
+        </tr><tr>
+          <th></th>
+          <th style="color:var(--sc)">월실적</th><th style="color:var(--sc)">누적</th>
+          <th style="color:var(--dc)">월실적</th><th style="color:var(--dc)">누적</th>
+          <th style="color:var(--cc)">월실적</th><th style="color:var(--cc)">누적</th>
+        </tr></thead>
+        <tbody id="cmpMTb"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px">실적은 📅 월별 입력 탭에서 입력 후 저장하면 자동 반영됩니다</div>
+</div>
+
+<!-- ── ADD TASK MODAL ─────────────────────────── -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <div class="modal-title">
+      ➕ 새 TASK 추가
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="fld">
+      <label>대분류 *</label>
+      <select id="nCat" onchange="populateAddMidTags()">
+        <option value="">선택…</option>
+        <option>A. 전략·기획</option><option>B. 소싱·계약</option><option>C. 개발·포팅</option>
+        <option>D. 플랫폼 입점</option><option>E. 서비스 운영·수익화</option>
+        <option>F. 신규 사업 (B2B)</option><option>Phase 2</option><option>G. 지원사업·법무</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label>중분류 *</label>
+      <input id="nMid" placeholder="중분류 입력…">
+      <div class="tag-list" id="midTags"></div>
+    </div>
+    <div class="fld"><label>상세 TASK *</label><input id="nDet" placeholder="상세 TASK 내용…"></div>
+    <div class="fld"><label>하위 TASK (선택)</label><input id="nSub" placeholder="하위 TASK 내용…"></div>
+    <div class="fld-row">
+      <div class="fld">
+        <label>담당</label>
+        <select id="nOwn"><option>사업</option><option>개발</option><option>공동</option></select>
+      </div>
+      <div class="fld">
+        <label>상태</label>
+        <select id="nSts"><option>대기</option><option>진행중</option><option>완료</option><option>홀딩</option></select>
+      </div>
+    </div>
+    <div class="fld-row">
+      <div class="fld">
+        <label>유형</label>
+        <select id="nTyp"><option value="상세 TASK">상세 TASK</option><option value="하위 TASK">하위 TASK</option></select>
+      </div>
+      <div class="fld"><label>참고사항</label><input id="nNote" placeholder="참고사항…"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAddModal()">취소</button>
+      <button class="btn-ok" onclick="confirmAddTask()">✅ 추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let TASKS=[
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 연간 사업 전략 수립`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`신규 게임 127개 / 연매출 21억 / 이익 2억 목표`,typ:`상세 TASK`,_id:0},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 연간 사업 전략 수립`,sub:`사업 목표 수치 설정 (게임 수/매출/이익)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:1},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 하반기 전략 재수립`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`2Q 실적 기반 전략 수정`,typ:`상세 TASK`,_id:2},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 하반기 전략 재수립`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:3},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 하반기 전략 재수립`,sub:`2Q 실적 데이터 취합`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:4},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`26년 하반기 전략 재수립`,sub:`하반기 전략 수정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:5},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:6},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:`전체 일정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:7},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:`소싱 일정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:8},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:`포팅 일정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:9},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:`풀스택 일정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:10},
+{cat:`A. 전략·기획`,mid:`사업 전략`,det:`일정 관리`,sub:`퍼블리싱 일정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:11},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`글로벌 H5 플랫폼 현황 조사 및 입점 우선순위 선정`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:12},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`글로벌 H5 플랫폼 현황 조사 및 입점 우선순위 선정`,sub:`플랫폼별 트래픽·수익화 정보 조사`,own:`사업`,sts:`대기`,dt:``,note:`분기 별 플랫폼 정보 업데이트`,typ:`하위 TASK`,_id:13},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`글로벌 H5 플랫폼 현황 조사 및 입점 우선순위 선정`,sub:`입점 난이도 및 조건 조사`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:14},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`글로벌 H5 플랫폼 현황 조사 및 입점 우선순위 선정`,sub:`입점 우선순위 선정 및 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:15},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`국내 트래픽 파트너 현황 조사 및 우선순위 선정`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`MAU TOP 40 리스트업 완료`,typ:`상세 TASK`,_id:16},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`국내 트래픽 파트너 현황 조사 및 우선순위 선정`,sub:`MAU 상위 앱 리스트업 (TOP 40)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:17},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`국내 트래픽 파트너 현황 조사 및 우선순위 선정`,sub:`게임 사업 적합성 평가 (앱별)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:18},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`국내 트래픽 파트너 현황 조사 및 우선순위 선정`,sub:`컨택 우선순위 선정 및 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:19},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`경쟁사 현황 파악 및 넵튠 포지셔닝 확정`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:20},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`경쟁사 현황 파악 및 넵튠 포지셔닝 확정`,sub:`국내외 H5 게임 퍼블리셔 현황 분석`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:21},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`경쟁사 현황 파악 및 넵튠 포지셔닝 확정`,sub:`서비스 구조·수익화 방식 비교 분석`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:22},
+{cat:`A. 전략·기획`,mid:`시장 조사`,det:`경쟁사 현황 파악 및 넵튠 포지셔닝 확정`,sub:`넵튠 포지셔닝 방향 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:23},
+{cat:`B. 소싱·계약`,mid:`공통`,det:`소개서 작성`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:24},
+{cat:`B. 소싱·계약`,mid:`공통`,det:`소개서 작성`,sub:`회사 소개서 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:25},
+{cat:`B. 소싱·계약`,mid:`공통`,det:`소개서 작성`,sub:`퍼블리싱 제안서`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:26},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`H5 퍼블리싱 표준 계약서 작성 (NET R/S)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:27},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`H5 퍼블리싱 표준 계약서 작성 (NET R/S)`,sub:`계약서 초안 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:28},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`H5 퍼블리싱 표준 계약서 작성 (NET R/S)`,sub:`법무 검토`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:29},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`H5 퍼블리싱 표준 계약서 작성 (NET R/S)`,sub:`최종 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:30},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`R/S 구조 수립`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`국내 개발사 미팅 후 검증 중`,typ:`상세 TASK`,_id:31},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`R/S 구조 수립`,sub:`경쟁사 조건 벤치마킹`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:32},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`R/S 구조 수립`,sub:`내부 수익성 시뮬레이션`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:33},
+{cat:`B. 소싱·계약`,mid:`계약`,det:`R/S 구조 수립`,sub:`RS 슬라이딩 구조 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:34},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`NDA`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:35},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`NDA`,sub:`초안 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:36},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`NDA`,sub:`법무 검토`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:37},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`NDA`,sub:`최종 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:38},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`중국 소스코드 구매 계약서`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:39},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`중국 소스코드 구매 계약서`,sub:`초안 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:40},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`중국 소스코드 구매 계약서`,sub:`법무 검토`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:41},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`중국 소스코드 구매 계약서`,sub:`최종 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:42},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`소스코드 요청 양식 표준화 (개발/서버/텍스트/IAP/아이콘)`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:43},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`소스코드 요청 양식 표준화 (개발/서버/텍스트/IAP/아이콘)`,sub:`필요 파일 목록 정의`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:44},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`소스코드 요청 양식 표준화 (개발/서버/텍스트/IAP/아이콘)`,sub:`양식 제작`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:45},
+{cat:`B. 소싱·계약`,mid:`계약 공통 도구`,det:`소스코드 요청 양식 표준화 (개발/서버/텍스트/IAP/아이콘)`,sub:`개발팀 검토 확정`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:46},
+{cat:`B. 소싱·계약`,mid:`자사 소싱`,det:`자사 게임 런칭 목표 관리 — 37개 (1Q 6 / 2Q 11 / 3Q 12 / 4Q 12)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:47},
+{cat:`B. 소싱·계약`,mid:`자사 소싱`,det:`자사 게임 런칭 목표 관리 — 37개 (1Q 6 / 2Q 11 / 3Q 12 / 4Q 12)`,sub:`월별 포팅 완료 수량 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:48},
+{cat:`B. 소싱·계약`,mid:`자사 소싱`,det:`자사 게임 런칭 목표 관리 — 37개 (1Q 6 / 2Q 11 / 3Q 12 / 4Q 12)`,sub:`지연 게임 원인 파악 및 조치`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:49},
+{cat:`B. 소싱·계약`,mid:`자사 소싱`,det:`자사 게임 런칭 목표 관리 — 37개 (1Q 6 / 2Q 11 / 3Q 12 / 4Q 12)`,sub:`분기별 실적 정리`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:50},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:51},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`대상 게임 선정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:52},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`R/S 조건 협의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:53},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`계약서 검토`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:54},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`계약서 날인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:55},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`소스코드 수령`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:56},
+{cat:`B. 소싱·계약`,mid:`자사 - 자회사`,det:`자회사`,sub:`H5 포팅`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:57},
+{cat:`B. 소싱·계약`,mid:`자사 - 캐주얼실`,det:`캐주얼실`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:58},
+{cat:`B. 소싱·계약`,mid:`자사 - 캐주얼실`,det:`캐주얼실`,sub:`대상 게임 선정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:59},
+{cat:`B. 소싱·계약`,mid:`자사 - 캐주얼실`,det:`캐주얼실`,sub:`소스코드 수령`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:60},
+{cat:`B. 소싱·계약`,mid:`자사 - 캐주얼실`,det:`캐주얼실`,sub:`소스코드 검수 (개발)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:61},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 런칭 목표 관리 — 18개 (2Q 3 / 3Q 9 / 4Q 9)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:62},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 런칭 목표 관리 — 18개 (2Q 3 / 3Q 9 / 4Q 9)`,sub:`월별 포팅 완료 수량 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:63},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 런칭 목표 관리 — 18개 (2Q 3 / 3Q 9 / 4Q 9)`,sub:`지연 원인 파악 및 조치`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:64},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 리스트업 및 컨택 계획 수립`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료`,typ:`상세 TASK`,_id:65},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 리스트업 및 컨택 계획 수립`,sub:`다운로드/매출 상위 게임 조사`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:66},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 개발사 리스트업 및 컨택 계획 수립`,sub:`컨택 우선순위 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:67},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 회사`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`법무 검토 중 (크래프톤 지연)`,typ:`상세 TASK`,_id:68},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 회사`,sub:`개발사 미팅`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:69},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 회사`,sub:`게임 선정 및 조건 협의 (R/S)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:70},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 회사`,sub:`계약서 날인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:71},
+{cat:`B. 소싱·계약`,mid:`국내 - 퍼블리싱`,det:`국내 회사`,sub:`소스코드 수령 및 검수`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:72},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`1차 10종 계약 추진 중. 개당 ~400만원`,typ:`상세 TASK`,_id:73},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`게임 후보 리스트업 (매월)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:74},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`게임 평가`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:75},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`가격 협상`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:76},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`계약서 날인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:77},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`소스코드 수령 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:78},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`월별 소싱 수량 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:79},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 실행 — 목표 73개 (상반기 37 / 하반기 36)`,sub:`지연 원인 파악 및 조치`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:80},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 기준 수립 (장르·게임성·저작권 이슈)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`완료. 퍼즐/iO/서바이벌/레이싱/매치3 등`,typ:`상세 TASK`,_id:81},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 기준 수립 (장르·게임성·저작권 이슈)`,sub:`장르 우선순위 정의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:82},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 기준 수립 (장르·게임성·저작권 이슈)`,sub:`게임성 평가 기준 수립`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:83},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`소싱 기준 수립 (장르·게임성·저작권 이슈)`,sub:`소싱 평가표 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:84},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`저작권 이슈 해결 - 검토`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:85},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`저작권 이슈 해결 - 검토`,sub:`리스킨 대상 게임 선정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:86},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`저작권 이슈 해결 - 검토`,sub:`외주 업체 선정 및 발주 조건 확정`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:87},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`저작권 이슈 해결 - 검토`,sub:`리스킨 작업 발주 및 실행`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:88},
+{cat:`B. 소싱·계약`,mid:`중국 - H5 소싱`,det:`저작권 이슈 해결 - 검토`,sub:`결과물 검수`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:89},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`포팅 우선순위 정리`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`무한의계단/부동산고스톱 완료. 다수 진행중`,typ:`상세 TASK`,_id:90},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`포팅 우선순위 정리`,sub:`플랫폼 우선순위`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:91},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`포팅 우선순위 정리`,sub:`게임 우선순위`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:92},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`포팅 우선순위 정리`,sub:`개발 마일스톤 정리`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:93},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`무한의계단/부동산고스톱 완료. 다수 진행중`,typ:`상세 TASK`,_id:94},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`소스코드 분석 및 환경 파악`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:95},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`H5 개발 환경 셋팅`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:96},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`포팅 작업`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:97},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`내부 QA 테스트`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:98},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`수정 및 최적화`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:99},
+{cat:`C. 개발·포팅`,mid:`H5 포팅 실행`,det:`모바일 > H5 포팅`,sub:`최종 빌드 완료 및 확인`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:100},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`H5 게임 현지화·번역`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`두다지 외주 연계`,typ:`상세 TASK`,_id:101},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`H5 게임 현지화·번역`,sub:`텍스트 번역 (한,영,일)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:102},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`H5 게임 현지화·번역`,sub:`번역 이미지  검수`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:103},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`H5 게임 현지화·번역`,sub:`기능 검수`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:104},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`완료. 환경설정 자동화 진행중`,typ:`상세 TASK`,_id:105},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:`SDK 및 정책 확인`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:106},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:`플랫폼 SDK 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:107},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:`포인트 미션 기획`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:108},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:`IAA 구조 설계`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:109},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`국내 - TOSS`,sub:`연동 테스트 및 검증`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:110},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - 글로벌 플랫폼`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`파트너십 체결 후 순차 진행`,typ:`상세 TASK`,_id:111},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - 글로벌 플랫폼`,sub:`SDK 및 정책 확인`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:112},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - 글로벌 플랫폼`,sub:`광고 SDK 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:113},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - 글로벌 플랫폼`,sub:`플랫폼 공통 API 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:114},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - 글로벌 플랫폼`,sub:`연동 테스트 및 검증`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:115},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`계약 체결 후 진행`,typ:`상세 TASK`,_id:116},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`SDK 및 정책 확인`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:117},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`로그인 기능 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:118},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`소셜그래프 기능 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:119},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`결제 기능 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:120},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`일본 자금결제법 대응 기능 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:121},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`해외 - LINE 퍼블리싱`,sub:`연동 테스트 및 검증`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:122},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`베트남 개발사. 계약 완료`,typ:`상세 TASK`,_id:123},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`외주 작업 범위 정의 (게임 리스트 + 작업 기준)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:124},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`외주 계약 체결`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:125},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`소스코드 전달`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:126},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`플랫폼 SDK 연동 + 번역 적용`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:127},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`중간 납품 검수`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:128},
+{cat:`C. 개발·포팅`,mid:`외주 개발 (두다지)`,det:`중국 H5 게임 외주 포팅·현지화`,sub:`최종 납품 확인 및 수령`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:129},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`Qwen2.5-Coder-32B / Furiosa RNGD NPU. 빌드서버 셋팅 시작`,typ:`상세 TASK`,_id:130},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`자동화 범위 및 요구사항 정의`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:131},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`파이프라인 설계`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:132},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`AI 모델 연동 (Qwen2.5-Coder-32B)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:133},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`프로토타입 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:134},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`검증 테스트 (게임 10종 적용)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:135},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`성능 개선 및 고도화`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:136},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`AI 기반 포팅 자동화 시스템 구축 (AI 바우처 연계)`,sub:`시스템 문서화`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:137},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`플랫폼 SDK 자동화 연동 (반복 작업 자동화)`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`TOSS SDK 환경설정 자동화 진행중`,typ:`상세 TASK`,_id:138},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`플랫폼 SDK 자동화 연동 (반복 작업 자동화)`,sub:`플랫폼별 반복 작업 패턴 분석`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:139},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`플랫폼 SDK 자동화 연동 (반복 작업 자동화)`,sub:`자동화 스크립트 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:140},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`플랫폼 SDK 자동화 연동 (반복 작업 자동화)`,sub:`테스트 및 검증`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:141},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`iOS WKWebView 메모리 최적화`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`WebKit 메모리 제약 해결 방법 강구중`,typ:`상세 TASK`,_id:142},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`iOS WKWebView 메모리 최적화`,sub:`문제 원인 분석 (WebKit 메모리 제약 구조)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:143},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`iOS WKWebView 메모리 최적화`,sub:`최적화 방법 도출 및 적용`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:144},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`iOS WKWebView 메모리 최적화`,sub:`전체 게임 적용 및 테스트`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:145},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`iOS WKWebView 메모리 최적화`,sub:`최적화 가이드 문서화`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:146},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`QA 체계 구축 및 운영`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`중국 소싱 게임 퀄리티 이슈 반복 → 체계적 검수 프로세스 필요`,typ:`상세 TASK`,_id:147},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`QA 체계 구축 및 운영`,sub:`플랫폼별 검수 기준 조사 (반려 사례 수집)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:148},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`QA 체계 구축 및 운영`,sub:`QA 프로세스 수립 (담당자·단계·판단 기준 정의)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:149},
+{cat:`C. 개발·포팅`,mid:`내부 개발`,det:`QA 체계 구축 및 운영`,sub:`기본 기능 체크리스트 작성 및 검증`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:150},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`게임물 등급분류 신청 (H5 게임 한정)`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`5민랩 3종 신청 진행중`,typ:`상세 TASK`,_id:151},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`게임물 등급분류 신청 (H5 게임 한정)`,sub:`게임별 소개서 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:152},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`게임물 등급분류 신청 (H5 게임 한정)`,sub:`심사용 빌드 준비`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:153},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`게임물 등급분류 신청 (H5 게임 한정)`,sub:`등급분류 신청 제출`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:154},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`게임물 등급분류 신청 (H5 게임 한정)`,sub:`결과 확인 및 후속 조치`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:155},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`플랫폼별 사이즈 규격 상이`,typ:`상세 TASK`,_id:156},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:`플랫폼별 사이즈 규격 정리`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:157},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:`아이콘 제작 (규격별)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:158},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:`스크린샷 제작`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:159},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:`PV 제작`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:160},
+{cat:`D. 플랫폼 입점`,mid:`게임 출시 준비`,det:`메타데이터 준비 (플랫폼 공통 — 게임별 반복)`,sub:`디스크립션 작성 (KO/EN)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:161},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:``,own:`공동`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:162},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:`신규 게임 앱 등록 요청`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:163},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:`프로모션 생성 및 피처드 협의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:164},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:`게임별 SDK 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:165},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:`메타데이터 플랫폼 적용 (등록)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:166},
+{cat:`D. 플랫폼 입점`,mid:`국내`,det:`국내 - 플랫폼`,sub:`게임 런칭`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:167},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:``,own:`공동`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:168},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:`담당자 미팅 (입점 조건 협의)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:169},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:`파트너십 체결 / 화이트 계정 권한 확보`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:170},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:`메타데이터 플랫폼 적용 (등록)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:171},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:`게임별 SDK 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:172},
+{cat:`D. 플랫폼 입점`,mid:`해외`,det:`해외 - 글로벌 플랫폼`,sub:`게임 런칭`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:173},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`퍼블리싱 계약 체결 (LF 2,000만엔 + MG 2,500만엔)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`계약서 초안 작성중. 2월 4주 수령 예상`,typ:`상세 TASK`,_id:174},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`퍼블리싱 계약 체결 (LF 2,000만엔 + MG 2,500만엔)`,sub:`조건 최종 협의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:175},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`퍼블리싱 계약 체결 (LF 2,000만엔 + MG 2,500만엔)`,sub:`계약서 수령`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:176},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`퍼블리싱 계약 체결 (LF 2,000만엔 + MG 2,500만엔)`,sub:`법무 검토`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:177},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`퍼블리싱 계약 체결 (LF 2,000만엔 + MG 2,500만엔)`,sub:`계약서 날인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:178},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`계약 완료 후 진행`,typ:`상세 TASK`,_id:179},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`LINE SDK 연동`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:180},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`소셜그래프  기획`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:181},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`소셜그래프  개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:182},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`일본 자금결제법 대응`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:183},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`운영툴 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:184},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`LINE 개발 준비 (라인업 5종)`,sub:`QA 및 최종 검수`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:185},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`대기. 계약 완료 후 일정 확정`,typ:`상세 TASK`,_id:186},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`고양이스낵바`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:187},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`고양이오피스`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:188},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`드드드드릴`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:189},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`무한의계단`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:190},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`우르르용병단`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:191},
+{cat:`F. 신규 사업 (B2B)`,mid:`LINE 재팬 퍼블리싱`,det:`런칭 (8월 3종 / 10월 2종)`,sub:`런칭 후 서비스 대응`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:192},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`제안서 초안 작성중`,typ:`상세 TASK`,_id:193},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`제안서 작성`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:194},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`제안서 제출 및 미팅`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:195},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`조건 협의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:196},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`계약 체결`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:197},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`풀스택 환경 구축 (개발)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:198},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`게임 공급 시작`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:199},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`모니모 B2B 제안·계약·풀스택 운영`,sub:`운영 안정화 및 KPI 관리`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:200},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:``,own:`공동`,sts:`대기`,dt:``,note:`대기`,typ:`상세 TASK`,_id:201},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:`조건 협의`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:202},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:`계약 체결`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:203},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:`풀스택 환경 구축 (개발)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:204},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:`게임 공급 시작`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:205},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`카카오페이 B2B 제안·계약·풀스택 운영`,sub:`운영 안정화 및 KPI 관리`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:206},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`기타 파트너 컨택 (카카오/네이버/당근/SKT/현대차 등)`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`네이버웹툰 내부 검토중`,typ:`상세 TASK`,_id:207},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`기타 파트너 컨택 (카카오/네이버/당근/SKT/현대차 등)`,sub:`미팅 요청 및 일정 조율`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:208},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`기타 파트너 컨택 (카카오/네이버/당근/SKT/현대차 등)`,sub:`세일즈덱 발송 및 미팅 진행`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:209},
+{cat:`F. 신규 사업 (B2B)`,mid:`트래픽 파트너 세일즈`,det:`기타 파트너 컨택 (카카오/네이버/당근/SKT/현대차 등)`,sub:`후속 협의 및 계약 추진`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:210},
+{cat:`E. 서비스 운영·수익화`,mid:`KPI 모니터링`,det:`게임별 KPI 리포트 - 자동화`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`주간회의 핵심 안건이나 A to Z 누락 → 신규 입사자 파악 불가`,typ:`상세 TASK`,_id:211},
+{cat:`E. 서비스 운영·수익화`,mid:`KPI 모니터링`,det:`게임별 KPI 리포트 - 자동화`,sub:`플랫폼별 매출 데이터 취합 자동화`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:212},
+{cat:`E. 서비스 운영·수익화`,mid:`KPI 모니터링`,det:`게임별 KPI 리포트 - 자동화`,sub:`게임별 성과 분석 (전월 대비)`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:213},
+{cat:`E. 서비스 운영·수익화`,mid:`KPI 모니터링`,det:`게임별 KPI 리포트 - 자동화`,sub:`리포트 작성 및 보고`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:214},
+{cat:`E. 서비스 운영·수익화`,mid:`BI · 자동화 도구`,det:`정산 시스템 구축 - 자동화`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`입점 플랫폼 확장 후 우선순위 상승`,typ:`상세 TASK`,_id:215},
+{cat:`E. 서비스 운영·수익화`,mid:`BI · 자동화 도구`,det:`정산 시스템 구축 - 자동화`,sub:`플랫폼별 정산 API 연동 가능 여부 확인`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:216},
+{cat:`E. 서비스 운영·수익화`,mid:`BI · 자동화 도구`,det:`정산 시스템 구축 - 자동화`,sub:`자동화 범위 정의`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:217},
+{cat:`E. 서비스 운영·수익화`,mid:`BI · 자동화 도구`,det:`정산 시스템 구축 - 자동화`,sub:`개발 및 테스트`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:218},
+{cat:`E. 서비스 운영·수익화`,mid:`게임 운영`,det:`CS 운영 시스템 구축`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`플랫폼별 CS 채널 상이 → 공통 기준 필요`,typ:`상세 TASK`,_id:219},
+{cat:`E. 서비스 운영·수익화`,mid:`게임 운영`,det:`CS 운영 시스템 구축`,sub:`플랫폼별 CS 채널 현황 정리`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:220},
+{cat:`E. 서비스 운영·수익화`,mid:`게임 운영`,det:`CS 운영 시스템 구축`,sub:`공통 CS 템플릿 제작 (문의 유형별)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:221},
+{cat:`E. 서비스 운영·수익화`,mid:`게임 운영`,det:`CS 운영 시스템 구축`,sub:`이슈 대응 SOP 수립 (긴급 이슈 포함)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:222},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`시스템 기획`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`2027년 목표`,typ:`상세 TASK`,_id:223},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`시스템 기획`,sub:`서비스 컨셉 및 기획 수립`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:224},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`시스템 기획`,sub:`벤치마킹 (Just Play 등)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:225},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`시스템 기획`,sub:`기술 스펙 정의 및 로드맵 확정`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:226},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`앱/웹 시스템 구축`,sub:``,own:`개발`,sts:`대기`,dt:``,note:`2027년`,typ:`상세 TASK`,_id:227},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`앱/웹 시스템 구축`,sub:`유저 데이터 축적 시스템 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:228},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`앱/웹 시스템 구축`,sub:`리워드 시스템 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:229},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`앱/웹 시스템 구축`,sub:`프론트엔드/백엔드 개발`,own:`개발`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:230},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`앱/웹 시스템 구축`,sub:`UI/UX 설계 및 디자인`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:231},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`콘텐츠 도입`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`2027년`,typ:`상세 TASK`,_id:232},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`콘텐츠 도입`,sub:`H5 게임 공급`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:233},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`콘텐츠 도입`,sub:`웹툰 공급 (투믹스/레진/탑툰)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:234},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`콘텐츠 도입`,sub:`쇼츠드라마 파트너 공급 (스푼랩스)`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:235},
+{cat:`Phase 2`,mid:`Hyper Lane (Phase 2 — 2027년)`,det:`콘텐츠 도입`,sub:`추가 컨텐츠 도입`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:236},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`신청 준비 및 서류 제출`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`슈퍼플래닛/테피툰 협업. 총 6억. 킥오프 완료`,typ:`상세 TASK`,_id:237},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`신청 준비 및 서류 제출`,sub:`IRIS 연구자 등록`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:238},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`신청 준비 및 서류 제출`,sub:`연구과제 내용 정리`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:239},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`신청 준비 및 서류 제출`,sub:`1차 서류 작성 및 제출`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:240},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`선정 과정 및 협약`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:241},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`선정 과정 및 협약`,sub:`2차 발표 자료 준비 및 발표`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:242},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`선정 과정 및 협약`,sub:`결과 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:243},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`선정 과정 및 협약`,sub:`협약 체결`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:244},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`홍보`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:245},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`홍보`,sub:`PR 배포`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:246},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`연구 실행 및 결과 보고 (26~28년)`,sub:``,own:`공동`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:247},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`연구 실행 및 결과 보고 (26~28년)`,sub:`연구 일정 수립 (26~28년)`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:248},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`연구 실행 및 결과 보고 (26~28년)`,sub:`26년 결과 보고`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:249},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`연구 실행 및 결과 보고 (26~28년)`,sub:`27년 결과 보고`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:250},
+{cat:`G. 지원사업·법무`,mid:`대중소 정부과제`,det:`연구 실행 및 결과 보고 (26~28년)`,sub:`28년 결과 보고`,own:`공동`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:251},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`신청 준비 및 서류 제출`,sub:``,own:`사업`,sts:`대기`,dt:``,note:`총 2억. 중견기업 확인서 발급중 (20일 소요)`,typ:`상세 TASK`,_id:252},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`신청 준비 및 서류 제출`,sub:`IRIS 등록`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:253},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`신청 준비 및 서류 제출`,sub:`연구과제 정리`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:254},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`신청 준비 및 서류 제출`,sub:`1차 서류 작성 및 제출`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:255},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`선정 과정`,sub:``,own:`사업`,sts:`대기`,dt:``,note:``,typ:`상세 TASK`,_id:256},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`선정 과정`,sub:`2차 발표 자료 준비 및 발표`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:257},
+{cat:`G. 지원사업·법무`,mid:`AI 바우처 (NuFi)`,det:`선정 과정`,sub:`결과 확인`,own:`사업`,sts:`대기`,dt:``,note:``,typ:`하위 TASK`,_id:258}
+];
+let _nextId=259;
+
+// ── CONFIG ─────────────────────────────────────
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const CATS = [
+  {id:'A', name:'A. 전략·기획',          col:'#7c3aed'},
+  {id:'B', name:'B. 소싱·계약',          col:'#0891b2'},
+  {id:'C', name:'C. 개발·포팅',          col:'#059669'},
+  {id:'D', name:'D. 플랫폼 입점',        col:'#dc2626'},
+  {id:'E', name:'E. 서비스 운영·수익화', col:'#ec4899'},
+  {id:'F', name:'F. 신규 사업 (B2B)',    col:'#d97706'},
+  {id:'P', name:'Phase 2',               col:'#6366f1'},
+  {id:'G', name:'G. 지원사업·법무',      col:'#475569'},
+];
+const CAT_COL = {};
+CATS.forEach(c => { CAT_COL[c.name] = c.col; });
+
+// Q targets (hardcoded from plan)
+const QTG = { s:[6,11,12,12], d:[0,3,9,9], c:[23,14,12,12] };
+
+// ── DATA (monthly) ─────────────────────────────
+let DATA = Array(12).fill(null).map(() => ({s:'', d:'', c:''}));
+let TGT = {s:37, d:18, c:73};
+
+function loadData() {
+  try { const v = localStorage.getItem('h5dash_data'); if (v) DATA = JSON.parse(v); } catch(e){}
+  try { const v = localStorage.getItem('h5dash_tgt');  if (v) TGT  = JSON.parse(v); } catch(e){}
+  try { const v = localStorage.getItem('h5dash_upd');  if (v) document.getElementById('updTxt').textContent = v; } catch(e){}
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('h5dash_data', JSON.stringify(DATA));
+    localStorage.setItem('h5dash_tgt', JSON.stringify(TGT));
+    const now = new Date().toLocaleDateString('ko-KR');
+    localStorage.setItem('h5dash_upd', now);
+    document.getElementById('updTxt').textContent = now;
+  } catch(e){}
+  // Read current inputs
+  MONTHS.forEach((_, i) => {
+    const s = document.getElementById('inp_s_' + i);
+    const d = document.getElementById('inp_d_' + i);
+    const c = document.getElementById('inp_c_' + i);
+    if (s) DATA[i].s = s.value;
+    if (d) DATA[i].d = d.value;
+    if (c) DATA[i].c = c.value;
+  });
+  try {
+    TGT.s = parseInt(document.getElementById('tgtS').value) || 37;
+    TGT.d = parseInt(document.getElementById('tgtD').value) || 18;
+    TGT.c = parseInt(document.getElementById('tgtC').value) || 73;
+    localStorage.setItem('h5dash_tgt', JSON.stringify(TGT));
+    localStorage.setItem('h5dash_data', JSON.stringify(DATA));
+  } catch(e){}
+  renderAll();
+  alert('저장 완료 ✅');
+}
+
+// ── CUMULATIVE CALC ────────────────────────────
+function cumulate() {
+  const s = [], d = [], c = [];
+  let cs = 0, cd = 0, cc = 0;
+  DATA.forEach(m => {
+    cs += parseInt(m.s) || 0;
+    cd += parseInt(m.d) || 0;
+    cc += parseInt(m.c) || 0;
+    s.push(cs); d.push(cd); c.push(cc);
+  });
+  return {s, d, c};
+}
+
+// ── GAUGE HELPER ───────────────────────────────
+const CIRC = 2 * Math.PI * 44;
+function setGauge(id, val, tgt) {
+  const el = document.getElementById('g' + id);
+  if (!el) return;
+  const pct = tgt > 0 ? Math.min(val / tgt, 1) : 0;
+  el.setAttribute('stroke-dasharray', (pct * CIRC).toFixed(2) + ' ' + CIRC.toFixed(2));
+  const vEl = document.getElementById('g' + id + 'v');
+  const pEl = document.getElementById('g' + id + 'p');
+  const tEl = document.getElementById('g' + id + 't');
+  const m1  = document.getElementById('g' + id + 'm1');
+  const m2  = document.getElementById('g' + id + 'm2');
+  if (vEl) vEl.textContent = val;
+  if (pEl) pEl.textContent = (pct * 100).toFixed(1) + '%';
+  if (tEl) tEl.textContent = tgt;
+  if (m1)  m1.textContent = tgt;
+  const cur = new Date().getMonth();
+  if (m2)  m2.textContent = parseInt(DATA[cur]['s' === id.toLowerCase() ? 's' : 'd' === id.toLowerCase() ? 'd' : 'c']) || 0;
+}
+
+// ── RENDER ALL ─────────────────────────────────
+function renderAll() {
+  const cum = cumulate();
+  const cur = new Date().getMonth();
+  setGauge('S', cum.s[11] || 0, TGT.s);
+  setGauge('D', cum.d[11] || 0, TGT.d);
+  setGauge('C', cum.c[11] || 0, TGT.c);
+  // Fix month display for each gauge
+  const gSm2 = document.getElementById('gSm2'); if (gSm2) gSm2.textContent = parseInt(DATA[cur].s) || 0;
+  const gDm2 = document.getElementById('gDm2'); if (gDm2) gDm2.textContent = parseInt(DATA[cur].d) || 0;
+  const gCm2 = document.getElementById('gCm2'); if (gCm2) gCm2.textContent = parseInt(DATA[cur].c) || 0;
+  renderTaskStats();
+  renderCatGrid();
+  renderSummTable(cum);
+  renderInputTable();
+}
+
+function renderTaskStats() {
+  const done = TASKS.filter(t => t.sts === '완료').length;
+  const prog = TASKS.filter(t => t.sts === '진행중').length;
+  const wait = TASKS.length - done - prog;
+  const tot  = TASKS.length;
+  const pct = v => tot > 0 ? (v/tot*100).toFixed(1)+'%' : '0%';
+  const s = id => { const el = document.getElementById(id); if(el) return el; return {textContent:''}; };
+  s('totTask').textContent = tot;
+  s('totDone').textContent = done; s('totDonePct').textContent = pct(done);
+  s('totProg').textContent = prog; s('totProgPct').textContent = pct(prog);
+  s('totWait').textContent = wait; s('totWaitPct').textContent = pct(wait);
+}
+
+function renderCatGrid() {
+  const grid = document.getElementById('catGrid');
+  if (!grid) return;
+  grid.innerHTML = CATS.map(cat => {
+    const tasks = TASKS.filter(t => t.cat === cat.name);
+    const tot   = tasks.length;
+    const done  = tasks.filter(t => t.sts === '완료').length;
+    const prog  = tasks.filter(t => t.sts === '진행중').length;
+    const pct   = tot > 0 ? done / tot * 100 : 0;
+    return `<div class="cat-card">
+      <div class="cat-name" style="color:${cat.col}">${cat.name}</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct.toFixed(1)}%;background:${cat.col}"></div></div>
+      <div class="cat-counts">
+        <span class="ct-done">✅ ${done}</span>
+        <span class="ct-prog">🔄 ${prog}</span>
+        <span class="ct-wait">⏳ ${tot - done - prog}</span>
+        <span style="color:var(--muted);margin-left:auto">${tot}개</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSummTable(cum) {
+  const tb = document.getElementById('summTb');
+  if (!tb) return;
+  const curM = new Date().getMonth();
+  tb.innerHTML = MONTHS.map((m, i) => {
+    const isCur = i === curM;
+    const bg = isCur ? 'background:rgba(59,130,246,.07)' : '';
+    const hi = isCur ? 'color:#60a5fa;font-weight:800' : '';
+    return `<tr style="${bg}">
+      <td style="${hi}">${m}${isCur?' ◀':''}</td>
+      <td style="text-align:center;color:var(--sc)">${parseInt(DATA[i].s)||'—'}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:#a78bfa">${cum.s[i]||'—'}</td>
+      <td style="text-align:center;color:var(--dc)">${parseInt(DATA[i].d)||'—'}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:#38bdf8">${cum.d[i]||'—'}</td>
+      <td style="text-align:center;color:var(--cc)">${parseInt(DATA[i].c)||'—'}</td>
+      <td style="text-align:center;font-family:'JetBrains Mono',monospace;color:#fb7185">${cum.c[i]||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInputTable() {
+  const tb = document.getElementById('inpTb');
+  if (!tb) return;
+  const cum = cumulate();
+  const curM = new Date().getMonth();
+  tb.innerHTML = MONTHS.map((m, i) => {
+    const isCur = i === curM;
+    const bg = isCur ? 'background:rgba(59,130,246,.06)' : '';
+    return `<tr style="${bg}">
+      <td style="${isCur?'color:#60a5fa;font-weight:800':''}">${m}</td>
+      <td><input class="inp-cell" id="inp_s_${i}" value="${DATA[i].s||''}" placeholder="0"></td>
+      <td class="cum-cell" style="color:var(--sc)">${cum.s[i]||'—'}</td>
+      <td><input class="inp-cell" id="inp_d_${i}" value="${DATA[i].d||''}" placeholder="0"></td>
+      <td class="cum-cell" style="color:var(--dc)">${cum.d[i]||'—'}</td>
+      <td><input class="inp-cell" id="inp_c_${i}" value="${DATA[i].c||''}" placeholder="0"></td>
+      <td class="cum-cell" style="color:var(--cc)">${cum.c[i]||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateGauges() {
+  TGT.s = parseInt(document.getElementById('tgtS').value) || 37;
+  TGT.d = parseInt(document.getElementById('tgtD').value) || 18;
+  TGT.c = parseInt(document.getElementById('tgtC').value) || 73;
+  const cum = cumulate();
+  setGauge('S', cum.s[11]||0, TGT.s);
+  setGauge('D', cum.d[11]||0, TGT.d);
+  setGauge('C', cum.c[11]||0, TGT.c);
+}
+
+// ── COMPARE TAB ────────────────────────────────
+function renderCompare() {
+  const cum = cumulate();
+  // Cards
+  const cards = document.getElementById('cmpCards');
+  if (!cards) return;
+  const totAct = (cum.s[11]||0) + (cum.d[11]||0) + (cum.c[11]||0);
+  const totGoal = TGT.s + TGT.d + TGT.c;
+  const pct = (a, b) => b > 0 ? (a/b*100).toFixed(1)+'%' : '0%';
+  cards.innerHTML = [
+    ['🟣 자회사', cum.s[11]||0, TGT.s, 'var(--sc)'],
+    ['🔵 국내',   cum.d[11]||0, TGT.d, 'var(--dc)'],
+    ['🔴 중국 소싱', cum.c[11]||0, TGT.c, 'var(--cc)'],
+    ['📊 전체', totAct, totGoal, 'var(--hold)'],
+  ].map(([lbl, act, tgt, col]) =>
+    `<div class="card"><div class="card-lbl">${lbl}</div>
+     <div class="card-val" style="color:${col}">${act}<span style="font-size:14px;color:var(--muted)">/${tgt}</span></div>
+     <div class="card-sub">달성률 ${pct(act,tgt)}</div></div>`
+  ).join('');
+
+  // Quarterly
+  const qTb = document.getElementById('cmpQTb');
+  if (qTb) {
+    const mGroups = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
+    const qLabels = ['1Q (1~3월)','2Q (4~6월)','3Q (7~9월)','4Q (10~12월)'];
+    qTb.innerHTML = qLabels.map((ql, qi) => {
+      const ms = mGroups[qi];
+      const actS = ms.reduce((a,m) => a + (parseInt(DATA[m].s)||0), 0);
+      const actD = ms.reduce((a,m) => a + (parseInt(DATA[m].d)||0), 0);
+      const actC = ms.reduce((a,m) => a + (parseInt(DATA[m].c)||0), 0);
+      const gS = QTG.s[qi], gD = QTG.d[qi], gC = QTG.c[qi];
+      const cl = (a,g) => a >= g ? 'act-ok' : 'act-low';
+      return `<tr>
+        <td>${ql}</td>
+        <td>${gS}</td><td class="${cl(actS,gS)}">${actS}</td>
+        <td>${gD}</td><td class="${cl(actD,gD)}">${actD}</td>
+        <td>${gC}</td><td class="${cl(actC,gC)}">${actC}</td>
+      </tr>`;
+    }).join('') + `<tr style="border-top:2px solid var(--bdr);font-weight:800">
+      <td>연간 합계</td>
+      <td>${TGT.s}</td><td class="${(cum.s[11]||0)>=TGT.s?'act-ok':'act-low'}">${cum.s[11]||0}</td>
+      <td>${TGT.d}</td><td class="${(cum.d[11]||0)>=TGT.d?'act-ok':'act-low'}">${cum.d[11]||0}</td>
+      <td>${TGT.c}</td><td class="${(cum.c[11]||0)>=TGT.c?'act-ok':'act-low'}">${cum.c[11]||0}</td>
+    </tr>`;
+  }
+
+  // Monthly
+  const mTb = document.getElementById('cmpMTb');
+  if (mTb) {
+    mTb.innerHTML = MONTHS.map((m, i) => {
+      const ms = parseInt(DATA[i].s)||0, md = parseInt(DATA[i].d)||0, mc = parseInt(DATA[i].c)||0;
+      return `<tr>
+        <td>${m}</td>
+        <td style="color:var(--sc)">${ms||'—'}</td><td style="color:#a78bfa;font-family:'JetBrains Mono',monospace">${cum.s[i]||'—'}</td>
+        <td style="color:var(--dc)">${md||'—'}</td><td style="color:#38bdf8;font-family:'JetBrains Mono',monospace">${cum.d[i]||'—'}</td>
+        <td style="color:var(--cc)">${mc||'—'}</td><td style="color:#fb7185;font-family:'JetBrains Mono',monospace">${cum.c[i]||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ── TASK LIST ──────────────────────────────────
+const H = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function stsClass(s) { return s==='완료'?'sts-done':s==='진행중'?'sts-prog':s==='홀딩'?'sts-hold':'sts-wait'; }
+function ownClass(o) { return o==='개발'?'own-dev':o==='공동'?'own-com':'own-biz'; }
+
+function renderTaskList(items) {
+  const wrap = document.getElementById('taskWrap');
+  if (!wrap) return;
+  if (!items || !items.length) { wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">검색 결과 없음</div>'; return; }
+
+  const groups = {};
+  CATS.forEach(c => { groups[c.name] = []; });
+  items.forEach(t => {
+    if (!groups[t.cat]) groups[t.cat] = [];
+    groups[t.cat].push(t);
+  });
+
+  let html = '';
+  CATS.forEach(cat => {
+    const its = groups[cat.name];
+    if (!its || !its.length) return;
+    const col = cat.col;
+    let lastMid = null;
+    html += `<div class="ts-sec">
+      <div class="ts-hdr" style="background:${col}18;color:${col}" onclick="toggleSection(this)">
+        <span><span class="ts-arr">▶</span>${H(cat.name)}</span>
+        <span class="ts-cnt" style="background:${col}">${its.length}개</span>
+      </div>
+      <div class="ts-body">
+        <table><thead><tr>
+          <th style="width:14px"></th>
+          <th style="width:110px">중분류</th>
+          <th style="min-width:220px">상세 / 하위 TASK</th>
+          <th style="width:60px">담당</th>
+          <th style="width:70px">상태</th>
+          <th style="width:50px">예정일</th>
+          <th>참고사항</th>
+        </tr></thead><tbody>`;
+
+    its.forEach(t => {
+      const isSub = t.typ === '하위 TASK';
+      const showMid = !isSub && t.mid !== lastMid;
+      if (!isSub) lastMid = t.mid;
+      const midCell = showMid
+        ? `<span class="mid-badge" style="background:${col}20;color:${col};border:1px solid ${col}50">${H(t.mid)}</span>`
+        : '';
+      const taskText = isSub
+        ? `<span class="sub-arrow">└</span>${H(t.sub || t.det)}`
+        : H(t.det);
+      html += `<tr class="${isSub?'tr-sub':'tr-main'}" draggable="true" data-id="${t._id}" onclick="selectRow(this,${t._id})">
+        <td><span class="drag-handle" title="드래그로 순서 변경">⠿</span></td>
+        <td>${midCell}</td>
+        <td>${taskText}</td>
+        <td><span class="${ownClass(t.own)}">${H(t.own)||'—'}</span></td>
+        <td><span class="${stsClass(t.sts)}">${H(t.sts)||'—'}</span></td>
+        <td style="text-align:center;color:var(--muted);font-size:10px">—</td>
+        <td class="td-note" title="${H(t.note)}">${H(t.note)||'—'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function toggleSection(hdr) {
+  const body = hdr.nextElementSibling;
+  const arr  = hdr.querySelector('.ts-arr');
+  const open = !body.classList.contains('closed');
+  body.classList.toggle('closed', open);
+  arr.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+  arr.style.display = 'inline-block';
+}
+
+// ── FILTER ─────────────────────────────────────
+function initCatFilter() {
+  const sel = document.getElementById('flCat');
+  if (!sel) return;
+  const cats = [...new Set(TASKS.map(t => t.cat))];
+  cats.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+function populateMidFilter() {
+  const cat = document.getElementById('flCat').value;
+  const sel = document.getElementById('flMid');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">전체 중분류</option>';
+  const mids = [...new Set(TASKS.filter(t => !cat || t.cat === cat).map(t => t.mid))];
+  mids.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    sel.appendChild(o);
+  });
+}
+
+function applyFilter() {
+  const cat = document.getElementById('flCat').value;
+  const mid = document.getElementById('flMid').value;
+  const sts = document.getElementById('flSts').value;
+  const own = document.getElementById('flOwn').value;
+  const typ = document.getElementById('flTyp').value;
+  const q   = (document.getElementById('flQ').value || '').trim().toLowerCase();
+  const filtered = TASKS.filter(t => {
+    if (cat && t.cat !== cat) return false;
+    if (mid && t.mid !== mid) return false;
+    if (sts && t.sts !== sts) return false;
+    if (own && t.own !== own) return false;
+    if (typ && t.typ !== typ) return false;
+    if (q) {
+      const hay = (t.det + ' ' + t.sub + ' ' + t.mid + ' ' + t.note).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const cntEl = document.getElementById('flCnt');
+  if (cntEl) cntEl.textContent = filtered.length + '개';
+  renderTaskList(filtered);
+}
+
+function resetFilter() {
+  ['flCat','flMid','flSts','flOwn','flTyp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const q = document.getElementById('flQ');
+  if (q) q.value = '';
+  populateMidFilter();
+  applyFilter();
+}
+
+// ── ROW SELECT ─────────────────────────────────
+let selectedId = null;
+
+function selectRow(el, id) {
+  document.querySelectorAll('.tr-main.selected,.tr-sub.selected').forEach(r => r.classList.remove('selected'));
+  selectedId = (selectedId === id) ? null : id;
+  if (selectedId !== null) el.classList.add('selected');
+}
+
+// ── DRAG & DROP ────────────────────────────────
+let dragId = null;
+
+function initDragDrop() {
+  const wrap = document.getElementById('taskWrap');
+  if (!wrap) return;
+
+  wrap.addEventListener('dragstart', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    dragId = parseInt(tr.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(dragId));
+    setTimeout(() => tr.classList.add('dragging'), 0);
+  });
+
+  wrap.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    const tr = e.target.closest('tr[data-id]');
+    wrap.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    if (tr) tr.classList.add('drag-over');
+  });
+
+  wrap.addEventListener('dragleave', function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) tr.classList.remove('drag-over');
+  });
+
+  wrap.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const tr = e.target.closest('tr[data-id]');
+    wrap.querySelectorAll('.drag-over,.dragging').forEach(el => {
+      el.classList.remove('drag-over'); el.classList.remove('dragging');
+    });
+    if (!tr || !dragId) { dragId = null; return; }
+    const dropId = parseInt(tr.dataset.id);
+    if (isNaN(dropId) || dropId === dragId) { dragId = null; return; }
+    const si = TASKS.findIndex(t => t._id === dragId);
+    const di = TASKS.findIndex(t => t._id === dropId);
+    if (si < 0 || di < 0) { dragId = null; return; }
+    const [moved] = TASKS.splice(si, 1);
+    TASKS.splice(di, 0, moved);
+    dragId = null;
+    applyFilter();
+  });
+
+  wrap.addEventListener('dragend', function() {
+    wrap.querySelectorAll('.drag-over,.dragging').forEach(el => {
+      el.classList.remove('drag-over'); el.classList.remove('dragging');
+    });
+    dragId = null;
+  });
+}
+
+// ── DELETE KEY ─────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (selectedId === null) return;
+  if (!confirm('선택한 TASK를 삭제하시겠습니까?')) return;
+  const idx = TASKS.findIndex(t => t._id === selectedId);
+  if (idx >= 0) TASKS.splice(idx, 1);
+  selectedId = null;
+  applyFilter();
+  renderTaskStats();
+  renderCatGrid();
+});
+
+// ── ADD TASK MODAL ─────────────────────────────
+function openAddModal() {
+  document.getElementById('addModal').classList.add('open');
+  populateAddMidTags();
+}
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+function populateAddMidTags() {
+  const cat = document.getElementById('nCat').value;
+  const mids = [...new Set(TASKS.filter(t => !cat || t.cat === cat).map(t => t.mid))];
+  const list = document.getElementById('midTags');
+  if (!list) return;
+  list.innerHTML = mids.slice(0, 15).map(m =>
+    `<span class="tag" onclick="document.getElementById('nMid').value='${m.replace(/'/g,"\\'")};this.parentNode.querySelectorAll('.tag').forEach(t=>t.style.background='');this.style.background='rgba(59,130,246,.2)'">${H(m)}</span>`
+  ).join('');
+}
+
+function confirmAddTask() {
+  const cat = document.getElementById('nCat').value;
+  const mid = (document.getElementById('nMid').value || '').trim();
+  const det = (document.getElementById('nDet').value || '').trim();
+  if (!cat || !mid || !det) { alert('대분류, 중분류, 상세 TASK는 필수입니다.'); return; }
+  TASKS.push({
+    cat, mid, det,
+    sub:  (document.getElementById('nSub').value  || '').trim(),
+    own:  document.getElementById('nOwn').value,
+    sts:  document.getElementById('nSts').value,
+    typ:  document.getElementById('nTyp').value,
+    note: (document.getElementById('nNote').value || '').trim(),
+    dt: '', _id: _nextId++
+  });
+  closeAddModal();
+  ['nCat','nMid','nDet','nSub','nNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  applyFilter();
+  renderTaskStats();
+  renderCatGrid();
+}
+
+// ── TAB SWITCHING ──────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.pane').forEach(function(p) { p.classList.remove('on'); });
+  document.querySelectorAll('.tab').forEach(function(t)  { t.classList.remove('on'); });
+  var pane = document.getElementById('p-' + name);
+  if (pane) pane.classList.add('on');
+  var tab = document.querySelector('[data-tab="' + name + '"]');
+  if (tab) tab.classList.add('on');
+  if (name === 'compare') { try { renderCompare(); } catch(e) { console.error(e); } }
+}
+
+// Tab click handler — direct onclick on each tab for maximum compatibility
+document.getElementById('tabBar').addEventListener('click', function(e) {
+  var tab = e.target;
+  while (tab && !tab.dataset.tab && tab !== this) tab = tab.parentElement;
+  if (tab && tab.dataset.tab) switchTab(tab.dataset.tab);
+});
+
+// ── INIT ───────────────────────────────────────
+loadData();
+initCatFilter();
+populateMidFilter();
+renderAll();
+renderTaskList(TASKS);
+initDragDrop();
+</script>
+</body>
+</html>
