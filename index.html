@@ -105,7 +105,7 @@ tr:last-child td{border-bottom:none}
 
 /* TASK ROWS */
 .tr-main td{background:var(--card)}
-.tr-sub td{background:#0d1525}
+.tr-sub td{background:var(--card)}
 .tr-main:hover td,.tr-sub:hover td{background:#111e30}
 .tr-main.selected td,.tr-sub.selected td{background:rgba(59,130,246,.12);outline:1px solid rgba(59,130,246,.3)}
 .tr-main.drag-over td,.tr-sub.drag-over td{background:rgba(139,92,246,.15);box-shadow:inset 0 -2px 0 #7c3aed}
@@ -980,7 +980,7 @@ function renderTaskList(items) {
     let lastMid = null;
     const posLetter = String.fromCharCode(65 + Object.keys(groups).filter(k=>groups[k]&&groups[k].length).indexOf(cat.name));
     const displayName = cat.name.replace(/^[A-Z]\./, (posLetter||cat.id)+'.');
-    html += `<div class="ts-sec" draggable="true" data-catid="${cat.id}">
+    html += `<div class="ts-sec" draggable="false" data-catid="${cat.id}">
       <div class="ts-hdr" style="background:${col}18;color:${col}" onclick="toggleSection(this)">
         <span><span class="cat-drag-handle" title="드래그로 순서 변경" onclick="event.stopPropagation()">⠿</span><span class="ts-arr">▶</span>${H(displayName)}</span>
         <span class="ts-cnt" style="background:${col}">${its.length}개</span>
@@ -1065,14 +1065,21 @@ function initCatDrag() {
   const secs = document.querySelectorAll('#taskWrap .ts-sec[data-catid]');
   let dragId = null;
   secs.forEach(sec => {
+    const handle = sec.querySelector('.cat-drag-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', () => { sec.draggable = true; });
+      handle.addEventListener('mouseleave', () => { if (!dragId) sec.draggable = false; });
+    }
     sec.addEventListener('dragstart', e => {
-      // only allow drag from handle
-      if (!e.target.classList.contains('cat-drag-handle')) { e.preventDefault(); return; }
       dragId = sec.dataset.catid;
       setTimeout(() => sec.classList.add('cat-dragging'), 0);
       e.dataTransfer.effectAllowed = 'move';
     });
-    sec.addEventListener('dragend', () => sec.classList.remove('cat-dragging'));
+    sec.addEventListener('dragend', () => {
+      sec.draggable = false;
+      dragId = null;
+      sec.classList.remove('cat-dragging');
+    });
     sec.addEventListener('dragover', e => { e.preventDefault(); sec.classList.add('cat-over'); });
     sec.addEventListener('dragleave', () => sec.classList.remove('cat-over'));
     sec.addEventListener('drop', e => {
