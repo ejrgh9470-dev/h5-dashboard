@@ -164,6 +164,12 @@ tr:last-child td{border-bottom:none}
 .act-ok{color:#10b981}
 .act-low{color:#f59e0b}
 
+/* CAT DRAG */
+.cat-drag-handle{cursor:grab;font-size:14px;padding:0 8px 0 0;color:rgba(255,255,255,.3);user-select:none;flex-shrink:0}
+.cat-drag-handle:hover{color:rgba(255,255,255,.7)}
+.ts-sec.cat-dragging{opacity:.35}
+.ts-sec.cat-over{outline:2px solid rgba(59,130,246,.7);border-radius:8px}
+
 /* COL RESIZE */
 .th-r{position:absolute;right:0;top:0;width:5px;height:100%;cursor:col-resize;user-select:none;z-index:1}
 .th-r:hover,.th-r.dragging{background:rgba(59,130,246,.5)}
@@ -691,6 +697,17 @@ const CATS = [
 ];
 const CAT_COL = {};
 CATS.forEach(c => { CAT_COL[c.name] = c.col; });
+// restore saved category order
+(function(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('catOrder')||'null');
+    if(saved && saved.length===CATS.length) {
+      const map = {}; CATS.forEach(c=>map[c.id]=c);
+      const reordered = saved.map(id=>map[id]).filter(Boolean);
+      if(reordered.length===CATS.length) CATS.splice(0,CATS.length,...reordered);
+    }
+  } catch(e){}
+})();
 
 // Q targets (hardcoded from plan)
 const QTG = { s:[6,11,12,12], d:[0,3,9,9], c:[23,14,12,12] };
@@ -961,9 +978,11 @@ function renderTaskList(items) {
     if (!its || !its.length) return;
     const col = cat.col;
     let lastMid = null;
-    html += `<div class="ts-sec">
+    const posLetter = String.fromCharCode(65 + Object.keys(groups).filter(k=>groups[k]&&groups[k].length).indexOf(cat.name));
+    const displayName = cat.name.replace(/^[A-Z]\./, (posLetter||cat.id)+'.');
+    html += `<div class="ts-sec" draggable="true" data-catid="${cat.id}">
       <div class="ts-hdr" style="background:${col}18;color:${col}" onclick="toggleSection(this)">
-        <span><span class="ts-arr">▶</span>${H(cat.name)}</span>
+        <span><span class="cat-drag-handle" title="드래그로 순서 변경" onclick="event.stopPropagation()">⠿</span><span class="ts-arr">▶</span>${H(displayName)}</span>
         <span class="ts-cnt" style="background:${col}">${its.length}개</span>
       </div>
       <div class="ts-body">
@@ -1010,6 +1029,7 @@ function renderTaskList(items) {
     html += `</tbody></table></div></div>`;
   });
   wrap.innerHTML = html;
+  initCatDrag();
   // restore saved widths
   try {
     const saved = JSON.parse(localStorage.getItem('colW') || '{}');
@@ -1037,6 +1057,35 @@ function initColResize() {
       };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+function initCatDrag() {
+  const secs = document.querySelectorAll('#taskWrap .ts-sec[data-catid]');
+  let dragId = null;
+  secs.forEach(sec => {
+    sec.addEventListener('dragstart', e => {
+      // only allow drag from handle
+      if (!e.target.classList.contains('cat-drag-handle')) { e.preventDefault(); return; }
+      dragId = sec.dataset.catid;
+      setTimeout(() => sec.classList.add('cat-dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    sec.addEventListener('dragend', () => sec.classList.remove('cat-dragging'));
+    sec.addEventListener('dragover', e => { e.preventDefault(); sec.classList.add('cat-over'); });
+    sec.addEventListener('dragleave', () => sec.classList.remove('cat-over'));
+    sec.addEventListener('drop', e => {
+      e.preventDefault();
+      sec.classList.remove('cat-over');
+      const dropId = sec.dataset.catid;
+      if (!dragId || dragId === dropId) return;
+      const si = CATS.findIndex(c=>c.id===dragId), di = CATS.findIndex(c=>c.id===dropId);
+      if (si<0||di<0) return;
+      const [moved] = CATS.splice(si,1);
+      CATS.splice(di,0,moved);
+      try { localStorage.setItem('catOrder', JSON.stringify(CATS.map(c=>c.id))); } catch(e){}
+      applyFilter();
     });
   });
 }
