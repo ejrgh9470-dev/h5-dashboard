@@ -162,6 +162,12 @@ tr:last-child td{border-bottom:none}
 .cmp-tbl td{text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700}
 .cmp-tbl td:first-child{text-align:left;font-family:inherit;font-weight:700}
 .act-ok{color:#10b981}
+.row-past{opacity:.5}
+.row-cur td{background:rgba(255,255,255,.05)!important;font-weight:900!important}
+.row-cur td:first-child{border-left:3px solid var(--prog)}
+.pct-hi{color:#10b981;font-size:11px}
+.pct-lo{color:#f59e0b;font-size:11px}
+.pct-na{color:var(--muted);font-size:11px}
 .act-low{color:#f59e0b}
 
 /* CAT DRAG */
@@ -336,18 +342,24 @@ th{position:relative}
       <table class="cmp-tbl">
         <thead><tr>
           <th>분기</th>
-          <th colspan="2" style="color:var(--sc)">자회사</th>
-          <th colspan="2" style="color:var(--dc)">국내</th>
-          <th colspan="2" style="color:var(--cc)">중국 소싱</th>
+          <th colspan="3" style="color:var(--sc)">자회사</th>
+          <th colspan="3" style="color:var(--dc)">국내</th>
+          <th colspan="3" style="color:var(--cc)">중국 소싱</th>
         </tr><tr>
           <th></th>
-          <th style="color:var(--sc)">목표</th><th style="color:var(--sc)">실적</th>
-          <th style="color:var(--dc)">목표</th><th style="color:var(--dc)">실적</th>
-          <th style="color:var(--cc)">목표</th><th style="color:var(--cc)">실적</th>
+          <th style="color:var(--sc)">목표</th><th style="color:var(--sc)">실적</th><th style="color:var(--sc)">달성률</th>
+          <th style="color:var(--dc)">목표</th><th style="color:var(--dc)">실적</th><th style="color:var(--dc)">달성률</th>
+          <th style="color:var(--cc)">목표</th><th style="color:var(--cc)">실적</th><th style="color:var(--cc)">달성률</th>
         </tr></thead>
         <tbody id="cmpQTb"></tbody>
       </table>
     </div>
+  </div>
+
+  <div class="sec">목표 / 실적 추이</div>
+  <div class="tbl-wrap" style="padding:16px 16px 8px;margin-bottom:16px">
+    <canvas id="trendChart" style="width:100%;display:block"></canvas>
+    <div id="trendLegend" style="display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:center;margin-top:10px;font-size:11px;color:var(--muted)"></div>
   </div>
 
   <div class="sec">월별 실적 현황</div>
@@ -888,12 +900,15 @@ function updateGauges() {
 // ── COMPARE TAB ────────────────────────────────
 function renderCompare() {
   const cum = cumulate();
+  const curMon = new Date().getMonth(); // 0-based
+  const curQ   = Math.floor(curMon / 3);
+
   // Cards
   const cards = document.getElementById('cmpCards');
   if (!cards) return;
-  const totAct = (cum.s[11]||0) + (cum.d[11]||0) + (cum.c[11]||0);
+  const totAct  = (cum.s[11]||0) + (cum.d[11]||0) + (cum.c[11]||0);
   const totGoal = TGT.s + TGT.d + TGT.c;
-  const pct = (a, b) => b > 0 ? (a/b*100).toFixed(1)+'%' : '0%';
+  const pct = (a, b) => b > 0 ? (a/b*100).toFixed(1)+'%' : '—';
   cards.innerHTML = [
     ['🟣 자회사', cum.s[11]||0, TGT.s, 'var(--sc)'],
     ['🔵 국내',   cum.d[11]||0, TGT.d, 'var(--dc)'],
@@ -910,24 +925,31 @@ function renderCompare() {
   if (qTb) {
     const mGroups = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
     const qLabels = ['1Q (1~3월)','2Q (4~6월)','3Q (7~9월)','4Q (10~12월)'];
+    const cl  = (a,g) => a >= g ? 'act-ok' : 'act-low';
+    const pctCl = (a,g) => g===0 ? 'pct-na' : a>=g ? 'pct-hi' : 'pct-lo';
+    const pctTxt = (a,g) => g===0 ? '—' : (a/g*100).toFixed(1)+'%';
     qTb.innerHTML = qLabels.map((ql, qi) => {
       const ms = mGroups[qi];
-      const actS = ms.reduce((a,m) => a + (parseInt(DATA[m].s)||0), 0);
-      const actD = ms.reduce((a,m) => a + (parseInt(DATA[m].d)||0), 0);
-      const actC = ms.reduce((a,m) => a + (parseInt(DATA[m].c)||0), 0);
+      const actS = ms.reduce((a,m) => a+(parseInt(DATA[m].s)||0),0);
+      const actD = ms.reduce((a,m) => a+(parseInt(DATA[m].d)||0),0);
+      const actC = ms.reduce((a,m) => a+(parseInt(DATA[m].c)||0),0);
       const gS = QTG.s[qi], gD = QTG.d[qi], gC = QTG.c[qi];
-      const cl = (a,g) => a >= g ? 'act-ok' : 'act-low';
-      return `<tr>
-        <td>${ql}</td>
-        <td>${gS}</td><td class="${cl(actS,gS)}">${actS}</td>
-        <td>${gD}</td><td class="${cl(actD,gD)}">${actD}</td>
-        <td>${gC}</td><td class="${cl(actC,gC)}">${actC}</td>
+      const rowCls = qi < curQ ? 'row-past' : qi === curQ ? 'row-cur' : '';
+      const tag = qi === curQ ? ' <span style="font-size:10px;color:var(--prog);font-weight:900">◀ 현재</span>' : '';
+      return `<tr class="${rowCls}">
+        <td>${ql}${tag}</td>
+        <td>${gS}</td><td class="${cl(actS,gS)}">${actS}</td><td class="${pctCl(actS,gS)}">${pctTxt(actS,gS)}</td>
+        <td>${gD}</td><td class="${cl(actD,gD)}">${actD}</td><td class="${pctCl(actD,gD)}">${pctTxt(actD,gD)}</td>
+        <td>${gC}</td><td class="${cl(actC,gC)}">${actC}</td><td class="${pctCl(actC,gC)}">${pctTxt(actC,gC)}</td>
       </tr>`;
     }).join('') + `<tr style="border-top:2px solid var(--bdr);font-weight:800">
       <td>연간 합계</td>
       <td>${TGT.s}</td><td class="${(cum.s[11]||0)>=TGT.s?'act-ok':'act-low'}">${cum.s[11]||0}</td>
+      <td class="${pctCl(cum.s[11]||0,TGT.s)}">${pctTxt(cum.s[11]||0,TGT.s)}</td>
       <td>${TGT.d}</td><td class="${(cum.d[11]||0)>=TGT.d?'act-ok':'act-low'}">${cum.d[11]||0}</td>
+      <td class="${pctCl(cum.d[11]||0,TGT.d)}">${pctTxt(cum.d[11]||0,TGT.d)}</td>
       <td>${TGT.c}</td><td class="${(cum.c[11]||0)>=TGT.c?'act-ok':'act-low'}">${cum.c[11]||0}</td>
+      <td class="${pctCl(cum.c[11]||0,TGT.c)}">${pctTxt(cum.c[11]||0,TGT.c)}</td>
     </tr>`;
   }
 
@@ -936,13 +958,154 @@ function renderCompare() {
   if (mTb) {
     mTb.innerHTML = MONTHS.map((m, i) => {
       const ms = parseInt(DATA[i].s)||0, md = parseInt(DATA[i].d)||0, mc = parseInt(DATA[i].c)||0;
-      return `<tr>
-        <td>${m}</td>
+      const rowCls = i < curMon ? 'row-past' : i === curMon ? 'row-cur' : '';
+      const tag = i === curMon ? ' <span style="font-size:10px;color:var(--prog);font-weight:900">◀</span>' : '';
+      return `<tr class="${rowCls}">
+        <td>${m}${tag}</td>
         <td style="color:var(--sc)">${ms||'—'}</td><td style="color:#a78bfa;font-family:'JetBrains Mono',monospace">${cum.s[i]||'—'}</td>
         <td style="color:var(--dc)">${md||'—'}</td><td style="color:#38bdf8;font-family:'JetBrains Mono',monospace">${cum.d[i]||'—'}</td>
         <td style="color:var(--cc)">${mc||'—'}</td><td style="color:#fb7185;font-family:'JetBrains Mono',monospace">${cum.c[i]||'—'}</td>
       </tr>`;
     }).join('');
+  }
+
+  // Trend chart
+  drawTrendChart(cum, curMon);
+}
+
+function drawTrendChart(cum, curMon) {
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  const legend = document.getElementById('trendLegend');
+
+  const DPR   = window.devicePixelRatio || 1;
+  const cW    = canvas.parentElement.clientWidth - 32;
+  const cH    = 180;
+  canvas.style.width  = cW + 'px';
+  canvas.style.height = cH + 'px';
+  canvas.width  = cW * DPR;
+  canvas.height = cH * DPR;
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  const PAD = {top:16, right:16, bottom:28, left:36};
+  const W = cW - PAD.left - PAD.right;
+  const H = cH - PAD.top - PAD.bottom;
+
+  // Background
+  ctx.clearRect(0, 0, cW, cH);
+
+  // ── data ──
+  const series = [
+    {key:'s', label:'자회사 누적', col:'#a78bfa', tgt:TGT.s},
+    {key:'d', label:'국내 누적',   col:'#38bdf8', tgt:TGT.d},
+    {key:'c', label:'중국 누적',   col:'#fb7185', tgt:TGT.c},
+  ];
+  const maxVal = Math.max(...series.map(s => s.tgt), 1);
+  const yMax   = Math.ceil(maxVal * 1.1 / 10) * 10;
+
+  const xPos = i => PAD.left + (i / 11) * W;
+  const yPos = v => PAD.top + H - (v / yMax) * H;
+
+  // ── grid ──
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    const y = PAD.top + H * (1 - t);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + W, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(yMax * t), PAD.left - 4, y + 3);
+  });
+
+  // ── month labels ──
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  ['1','2','3','4','5','6','7','8','9','10','11','12'].forEach((lbl, i) => {
+    ctx.fillText(lbl+'월', xPos(i), PAD.top + H + 16);
+  });
+
+  // ── goal ramp lines (dashed) ──
+  series.forEach(s => {
+    ctx.save();
+    ctx.strokeStyle = s.col;
+    ctx.globalAlpha = 0.25;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const v = s.tgt / 11 * i;
+      if (i === 0) ctx.moveTo(xPos(i), yPos(v));
+      else ctx.lineTo(xPos(i), yPos(v));
+    }
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // ── current month vertical marker ──
+  if (curMon >= 0 && curMon <= 11) {
+    const cx = xPos(curMon);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(99,102,241,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(cx, PAD.top); ctx.lineTo(cx, PAD.top + H); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(99,102,241,0.9)';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('▲', cx, PAD.top + H + 8);
+  }
+
+  // ── actual lines ──
+  series.forEach(s => {
+    const pts = [];
+    for (let i = 0; i <= curMon; i++) {
+      const v = cum[s.key][i] || 0;
+      if (v > 0 || i === 0) pts.push({x: xPos(i), y: yPos(v), v});
+    }
+    if (pts.length < 1) return;
+
+    ctx.save();
+    ctx.strokeStyle = s.col;
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = s.col;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    pts.forEach((p, i) => i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+    ctx.restore();
+
+    // dots
+    pts.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, i === curMon ? 4 : 2.5, 0, Math.PI*2);
+      ctx.fillStyle = i === curMon ? s.col : 'rgba(255,255,255,0.7)';
+      ctx.fill();
+      // value label on last dot
+      if (i === pts.length - 1 && p.v > 0) {
+        ctx.fillStyle = s.col;
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.v, p.x, p.y - 8);
+      }
+    });
+  });
+
+  // ── legend ──
+  if (legend) {
+    legend.innerHTML = series.map(s =>
+      `<span style="display:flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:18px;height:2px;background:${s.col};border-radius:2px"></span>
+        <span style="color:${s.col}">${s.label}</span>
+        <span style="color:rgba(255,255,255,.3)">/ 목표</span>
+        <span style="display:inline-block;width:18px;height:1px;background:${s.col};opacity:.4;border-top:1px dashed ${s.col}"></span>
+      </span>`
+    ).join('') + '<span style="display:flex;align-items:center;gap:4px"><span style="color:rgba(99,102,241,0.8)">▲</span><span>현재 월</span></span>';
   }
 }
 
