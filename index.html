@@ -1010,6 +1010,11 @@ function renderTaskList(items) {
     html += `</tbody></table></div></div>`;
   });
   wrap.innerHTML = html;
+  // restore saved widths
+  try {
+    const saved = JSON.parse(localStorage.getItem('colW') || '{}');
+    document.querySelectorAll('#taskWrap th[style]').forEach((t,i) => { if(saved[i]) t.style.width = saved[i]; });
+  } catch(e){}
   initColResize();
 }
 
@@ -1025,6 +1030,10 @@ function initColResize() {
         this.classList.remove('dragging');
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        // persist all col widths
+        const widths = {};
+        document.querySelectorAll('#taskWrap th[style]').forEach((t,i) => { widths[i] = t.style.width; });
+        try { localStorage.setItem('colW', JSON.stringify(widths)); } catch(e){}
       };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
